@@ -5,6 +5,7 @@ import globalErrorHandler from './app/middlewares/globalErrorHandler';
 import notFound from './app/middlewares/notFound';
 import router from './app/routes';
 
+
 const app: Application = express();
 
 // ১. Parsers
@@ -15,7 +16,7 @@ express.static('uploads');
 // ২. CORS Configuration (Open to all)
 app.use(
   cors({
-    origin: true,
+    origin: true, // 🟢 এটা দিলে যেকোনো অরিজিন থেকেই রিকোয়েস্ট এক্সেপ্ট করবে এবং ক্রেডেনশিয়ালও কাজ করবে
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
