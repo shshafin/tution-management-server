@@ -1,0 +1,53 @@
+import { NextFunction, Request, Response } from 'express';
+import httpStatus from 'http-status';
+import jwt, { JwtPayload } from 'jsonwebtoken';
+
+
+// Extend Express Request interface to include 'user'
+declare global {
+  namespace Express {
+    interface Request {
+      user: JwtPayload;
+    }
+  }
+}
+
+const auth = (...requiredRoles: TUserRole[]) => {
+  return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.headers.authorization;
+
+    // 1. Check if token is sent
+    if (!token) {
+      throw new Error('You are not authorized!');
+    }
+
+    // 2. Verify Token
+    const jwtSecret = process.env.JWT_ACCESS_SECRET || 'secret123';
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, jwtSecret) as JwtPayload;
+    } catch (err) {
+      throw new Error('Unauthorized');
+    }
+
+    const { role, userId, email } = decoded;
+
+    // 3. Check if user still exists in DB (Security Best Practice)
+    const isUserExist = await User.findById(userId);
+    if (!isUserExist) {
+      throw new Error('This user is not found !');
+    }
+
+    // 4. Check if role is allowed
+    if (requiredRoles && !requiredRoles.includes(role)) {
+      throw new Error('You have no access to this route');
+    }
+
+    // 5. Attach user to request and proceed
+    req.user = decoded;
+    next();
+  });
+};
+
+export default auth;

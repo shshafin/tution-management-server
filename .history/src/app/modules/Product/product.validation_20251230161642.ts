@@ -1,0 +1,32 @@
+import { z } from 'zod';
+
+const createProductValidationSchema = z.object({
+  body: z.object({
+    name: z.string().optional(),
+    category: z.enum(['Soft Toy', 'Pet Toy', 'Baby Accessories', 'Others'], {
+      required_error: 'Category is required',
+    }),
+    images: z.array(z.string()).optional(), // Array of strings (URLs)
+    description: z.string(),
+    price: z.number().optional(),
+    isFeatured: z.boolean().optional(),
+  }),
+});
+
+const updateProductValidationSchema = z.object({
+  body: z.object({
+    name: z.string().optional(),
+    category: z
+      .enum(['Soft Toy', 'Pet Toy', 'Baby Accessories', 'Others'])
+      .optional(),
+    images: z.array(z.string()).optional(),
+    description: z.string().optional(),
+    price: z.number().optional(),
+    isFeatured: z.boolean().optional(),
+  }),
+});
+
+export const ProductValidation = {
+  createProductValidationSchema,
+  updateProductValidationSchema,
+};

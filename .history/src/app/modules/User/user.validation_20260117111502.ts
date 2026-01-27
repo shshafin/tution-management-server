@@ -1,0 +1,111 @@
+import { z } from 'zod';
+
+const majorList = [
+  'Computer Science & Engineering (CSE)',
+  'Information and Communication Technology (ICT)',
+  'Electrical and Electronic Engineering (EEE)',
+  'Civil Engineering',
+  'Mechanical Engineering',
+  'Biomedical Engineering',
+  'Architecture',
+  'Environmental Science',
+  'Physics',
+  'Chemistry',
+  'Mathematics',
+  'Statistics',
+  'Biotechnology & Genetic Engineering',
+  'Microbiology',
+  'Food & Nutrition Science',
+  'MBBS',
+  'BDS',
+  'Pharmacy',
+  'Nursing',
+  'Physiotherapy',
+  'Medical Laboratory Technology',
+  'Public Health',
+  'Business Administration (BBA)',
+  'Economics',
+  'Accounting & Finance',
+  'Marketing',
+  'Management',
+  'HRM (Human Resource Management)',
+  'Supply Chain Management',
+  'International Business',
+  'Banking & Insurance',
+  'Tourism & Hospitality',
+  'English',
+  'Bangla',
+  'History',
+  'Philosophy',
+  'Islamic Studies',
+  'Sociology',
+  'Fine Arts',
+  'Music',
+  'Political Science',
+  'Mass Communication',
+  'Law',
+  'Criminology',
+  'Education',
+  'Agriculture',
+  'Other (Enter Manually)',
+];
+
+const basicEduValidation = z.object({
+  background: z.enum([
+    'bangla medium',
+    'english medium',
+    'english version',
+    'Madrasa',
+  ]),
+  curriculum: z
+    .enum(['Edexcell curriculam', 'Cambridge curriculam', 'IB curriculam'])
+    .optional(),
+  institute: z.string().min(1),
+  group: z.enum(['science', 'commerce', 'humanities']),
+  result: z.string().min(1),
+  passingYear: z.string().length(4),
+});
+
+const createTutorSchema = z.object({
+  body: z.object({
+    name: z.string(),
+    email: z.string().email(),
+    password: z.string().min(6),
+    phone: z.string(),
+    location: z.string(),
+    gender: z.enum(['male', 'female']),
+    tutorType: z.array(z.enum(['online', 'offline'])),
+    teachingMediums: z.array(
+      z.enum([
+        'bangla medium',
+        'english medium',
+        'english version',
+        'admission test',
+      ]),
+    ),
+    teachingClasses: z.array(z.string()),
+    availableDays: z.array(
+      z.enum(['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri']),
+    ),
+    experienceYears: z.number(),
+    secondaryInfo: basicEduValidation,
+    higherSecondaryInfo: basicEduValidation,
+    bachelorInfo: z.object({
+      institute: z.string(),
+      discipline: z.enum([
+        'engineering',
+        'medical',
+        'business',
+        'science',
+        'social science',
+        'fine_arts',
+      ]),
+      major: z.string(),
+      customMajor: z.string().optional(),
+      result: z.string(),
+      passingYear: z.string().length(4),
+    }),
+  }),
+});
+
+export const UserValidation = { createTutorSchema };

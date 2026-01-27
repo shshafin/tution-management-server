@@ -1,0 +1,41 @@
+import { TPackage } from './package.interface';
+import { Package } from './package.model';
+
+const createPackageIntoDB = async (payload: TPackage) => {
+  const result = await Package.create(payload);
+  return result;
+};
+
+const getAllPackagesFromDB = async () => {
+  const result = await Package.find({ isActive: true });
+  return result;
+};
+
+// একটি নির্দিষ্ট প্যাকেজ দেখা
+const getSinglePackageFromDB = async (id: string) => {
+  const result = await Package.findById(id);
+  return result;
+};
+
+// প্যাকেজ আপডেট করা
+const updatePackageIntoDB = async (id: string, payload: Partial<TPackage>) => {
+  const result = await Package.findByIdAndUpdate(id, payload, {
+    new: true,
+    runValidators: true,
+  });
+  return result;
+};
+
+// প্যাকেজ ডিলিট করা
+const deletePackageFromDB = async (id: string) => {
+  const result = await Package.findByIdAndDelete(id);
+  return result;
+};
+
+export const PackageService = {
+  createPackageIntoDB,
+  getAllPackagesFromDB,
+  getSinglePackageFromDB, // নতুন
+  updatePackageIntoDB,    // নতুন
+  deletePackageFromDB,    // নতুন
+};
