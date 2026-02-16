@@ -1,0 +1,70 @@
+import { Model, Document } from 'mongoose';
+import {
+  BachelorMajors,
+  DaysOfWeek,
+  TeachingClasses,
+  TeachingMediums,
+} from './user.constant';
+
+export type TUserRole = 'super_admin' | 'admin' | 'tutor';
+export type TUserStatus = 'active' | 'pending' | 'blocked';
+
+export interface IBasicEducation {
+  background:
+    | 'bangla medium'
+    | 'english medium'
+    | 'english version'
+    | 'Madrasa';
+  curriculum?: 'Edexcell curriculam' | 'Cambridge curriculam' | 'IB curriculam';
+  institute: string;
+  group: 'science' | 'commerce' | 'humanities';
+  result: string;
+  passingYear: string;
+}
+
+export interface IUser extends Document {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  image?: string;
+  role: TUserRole;
+  status: TUserStatus;
+  credits: number;
+
+  // Step 1-5 Info
+  location: {
+    address: string; // মানুষের পড়ার উপযোগী অ্যাড্রেস (e.g., Mirpur 10)
+    type: 'Point'; // GeoJSON এর জন্য ফিক্সড
+    coordinates: [number, number]; // [Longitude, Latitude]
+  };
+  gender: 'male' | 'female';
+  tutorType: ('online' | 'offline')[];
+  teachingMediums: (typeof TeachingMediums)[number][];
+  teachingClasses: (typeof TeachingClasses)[number][];
+  availableDays: (typeof DaysOfWeek)[number][];
+  experienceYears: number;
+
+  // Step 6-10 Education
+  secondaryInfo: IBasicEducation;
+  higherSecondaryInfo: IBasicEducation;
+  bachelorInfo: {
+    institute: string;
+    discipline:
+      | 'engineering'
+      | 'medical'
+      | 'business'
+      | 'science'
+      | 'social science'
+      | 'fine_arts';
+    major: (typeof BachelorMajors)[number];
+    customMajor?: string;
+    result?: string;
+    passingYear: string;
+  };
+
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
+}
+
+export interface UserModel extends Model<IUser> {}
