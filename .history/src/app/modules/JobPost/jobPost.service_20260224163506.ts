@@ -83,14 +83,14 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
 
   // ২. ডাইনামিক ফিল্টারিং (Gender, Type, Category, Class)
   if (query.tutorGender) {
-    // টিউটর 'male' হলে সে 'male' এবং 'any' দুই ধরণের জবই দেখবে
+    // টিউটরের জেন্ডার যদি Male হয়, তবে সে 'male' এবং 'any' দুই ধরণের জবই দেখবে
     filterQuery.tutorGenderPreference = { $in: [query.tutorGender, 'any'] };
   }
   if (query.tutoringType) filterQuery.tutoringType = query.tutoringType;
   if (query.studyCategory) filterQuery.studyCategory = query.studyCategory;
   if (query.classLevel) filterQuery.classLevel = query.classLevel;
 
-  // ৩. সাবজেক্ট ব্যাকগ্রাউন্ড ফিল্টার (টিউটরের ডিসিপ্লিন অনুযায়ী)
+  // ৩. সাবজেক্ট ব্যাকগ্রাউন্ড ফিল্টার (যদি টিউটরের ডিসিপ্লিন রিকোয়ারমেন্ট থাকে)
   if (query.tutorDiscipline) {
     filterQuery.$and = filterQuery.$and || [];
     filterQuery.$and.push({
@@ -106,13 +106,13 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
   }
 
   // ৪. 🚀 Geo-Spatial Radius Search (Fix)
-  // 📍 এখান থেকে !searchTerm কন্ডিশন সরিয়ে দেওয়া হয়েছে
+  // যদি ইউজার 'offline' টিউশনি খুঁজে এবং সার্চ টার্ম না থাকে, তবেই রেডিয়াস কাজ করবে
   const shouldApplyRadius =
     (query.tutoringType === 'offline' || !query.tutoringType) &&
     query.latitude &&
     query.longitude;
 
-  if (shouldApplyRadius) {
+  if (shouldApplyRadius && !searchTerm) {
     const config = await AdminConfig.findOne();
     const radiusInMeters = (config?.jobSearchRadius || 5) * 1000;
 
@@ -127,30 +127,27 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
     };
   }
 
-  // ৫. 🔍 স্মার্ট টেক্সট সার্চ (Area, Class, Subjects)
-  // 📍 সার্চ টার্মকে filterQuery-র সাথে $and করে দেওয়া হয়েছে যাতে মেইন ফিল্টার ব্রেক না হয়
+  // ৫. স্মার্ট টেক্সট সার্চ (Area, Class, Subjects)
+  let searchCondition = {};
   if (searchTerm) {
-    const searchRegex = new RegExp(searchTerm, 'i');
-
-    filterQuery.$and = filterQuery.$and || [];
-    filterQuery.$and.push({
+    searchCondition = {
       $or: [
-        { 'location.shortArea': searchRegex },
-        { 'location.mapAddress': searchRegex },
-        { classLevel: searchRegex },
-        { subjects: { $in: [searchRegex] } },
+        { 'location.shortArea': { $regex: searchTerm, $options: 'i' } },
+        { 'location.mapAddress': { $regex: searchTerm, $options: 'i' } },
+        { classLevel: { $regex: searchTerm, $options: 'i' } },
+        { subjects: { $in: [new RegExp(searchTerm, 'i')] } },
       ],
-    });
+    };
   }
 
   // ৬. কুয়েরি এক্সিকিউশন
-  // 📍 নোট: এখন সব লজিক filterQuery-র ভেতরেই আছে
-  let jobQuery = JobPost.find(filterQuery).select(
+  const finalQuery = { ...filterQuery, ...searchCondition };
+
+  let jobQuery = JobPost.find(finalQuery).select(
     '-guardianPhone -location.detailedAddress',
   );
 
-  // ৭. সর্টিং লজিক
-  // 📍 মঙ্গোডিবিতে $near থাকলে ম্যানুয়াল সর্ট করা যায় না (সেটা ডিস্টেন্স অনুযায়ী অটো সর্ট হয়)
+  // 📍 ফিক্স: যদি লোকেশন সার্চ (Radius) থাকে, তবে .sort() করা যাবে না
   const isRadiusSearch = !!filterQuery.location;
 
   if (!isRadiusSearch) {

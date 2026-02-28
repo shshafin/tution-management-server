@@ -17,9 +17,6 @@ export const DaysOfWeek = [
 
 // 🎓 নতুন এবং স্পেসিফিক টিচিং ক্লাস লিস্ট
 export const TeachingClasses = [
-  'Nursery',
-  'KG-1',
-  'KG-2',
   'Class 1',
   'Class 2',
   'Class 3',

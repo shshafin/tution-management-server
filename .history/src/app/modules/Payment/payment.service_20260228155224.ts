@@ -27,7 +27,7 @@ const initPayment = async (tutorId: string, packageId: string) => {
   });
 
   if (paymentResponse.status) {
-    // 🟢 ফিক্স: upsert এর বদলে সরাসরি Create করো।
+    // 🟢 ফিক্স: upsert এর বদলে সরাসরি Create করো। 
     // পেমেন্ট হিস্ট্রিতে প্রতিবার নতুন এন্ট্রি হওয়াই স্ট্যান্ডার্ড।
     await Payment.create({
       tutor: tutorId,
@@ -52,61 +52,44 @@ const verifyAndConfirmPayment = async (gatewayInvoiceId: string) => {
   session.startTransaction();
 
   try {
-    // ১. পেমেন্ট গেটওয়ে (GeniePay) থেকে পেমেন্ট ভেরিফাই করা
+    // ১. জিনিপে থেকে পেমেন্ট ভেরিফাই করা
     const paymentData = await verifyPayment(gatewayInvoiceId);
 
     if (!paymentData || paymentData.status !== 'COMPLETED') {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        'Payment not completed or invalid!',
-        '',
-      );
+      throw new AppError(httpStatus.BAD_REQUEST, 'Payment not completed!', '');
     }
 
-    // ২. পেমেন্টের মেটাডাটা থেকে টিউটর এবং প্যাকেজ আইডি বের করা
+    // ২. মেটাডাটা থেকে আইডি বের করা
     const tutorId = paymentData.metadata?.tutorId;
     const packageId = paymentData.metadata?.packageId;
 
     /**
      * ৩. ডাটাবেজে পেন্ডিং রেকর্ড খুঁজে বের করা
-     * 🟢 ফিক্স: .sort({ createdAt: -1 }) ব্যবহার করা হয়েছে যেন ইউজার
-     * বারবার ট্রাই করলেও সবচেয়ে লেটেস্ট পেন্ডিং রেকর্ডটিই আপডেট হয়।
+     * এখানে .session(session) ব্যবহার করছি যেন ট্রানজ্যাকশন সেফ থাকে
      */
     const paymentRecord = await Payment.findOne({
       tutor: tutorId,
       package: packageId,
       status: 'pending',
     })
-      .sort({ createdAt: -1 }) // সবচেয়ে নতুন পেন্ডিং পেমেন্টটি ধরবে
+      .sort({ createdAt: -1 })
       .populate('package')
       .session(session);
 
     if (!paymentRecord) {
-      /**
-       * যদি পেন্ডিং রেকর্ড না পাওয়া যায়, তবে চেক করো অলরেডি
-       * এই ইনভয়েস আইডি দিয়ে কোনো রেকর্ড কমপ্লিট হয়ে আছে কি না।
-       * (এটি ডাবল ক্রেডিট যোগ হওয়া রোধ করবে - Webhook safety)
-       */
+      // যদি রেকর্ড না পাওয়া যায়, হয়তো অলরেডি কনফার্ম হয়ে গেছে (Webhook এর কারণে হতে পারে)
+      // তাই চেক করে দেখা ভালো
       const alreadyDone = await Payment.findOne({
         invoiceId: gatewayInvoiceId,
-        status: 'completed',
-      }).session(session);
+      });
+      if (alreadyDone) return alreadyDone;
 
-      if (alreadyDone) {
-        await session.commitTransaction();
-        return alreadyDone;
-      }
-
-      throw new AppError(
-        httpStatus.NOT_FOUND,
-        'Matching pending payment record not found!',
-        '',
-      );
+      throw new AppError(httpStatus.NOT_FOUND, 'Payment record not found!', '');
     }
 
     const pkg = paymentRecord.package as any;
 
-    // ৪. টিউটরের অ্যাকাউন্টে ক্রেডিট যোগ করা
+    // ৪. ক্রেডিট আপডেট
     const updatedTutor = await User.findByIdAndUpdate(
       paymentRecord.tutor,
       { $inc: { credits: pkg.credits } },
@@ -116,12 +99,12 @@ const verifyAndConfirmPayment = async (gatewayInvoiceId: string) => {
     if (!updatedTutor) {
       throw new AppError(
         httpStatus.NOT_FOUND,
-        'Tutor not found during credit update!',
+        'Tutor not found during verification!',
         '',
       );
     }
 
-    // ৫. পেমেন্ট রেকর্ড আপডেট করা (Status, Invoice, Transaction ID)
+    // ৫. পেমেন্ট রেকর্ড আপডেট ও ইনভয়েস আইডি সেভ
     paymentRecord.status = 'completed';
     paymentRecord.invoiceId = gatewayInvoiceId;
     paymentRecord.transactionId = paymentData.transaction_id;
@@ -129,16 +112,14 @@ const verifyAndConfirmPayment = async (gatewayInvoiceId: string) => {
 
     await paymentRecord.save({ session });
 
-    // ৬. সব ট্রানজ্যাকশন সফল হলে সেভ করো
+    // ৬. সব ঠিক থাকলে ডাটাবেজে সেভ করো
     await session.commitTransaction();
     return paymentRecord;
   } catch (error) {
-    // কোনো এরর হলে ক্রেডিট বা পেমেন্ট স্ট্যাটাস আগের অবস্থায় ফিরে যাবে (Rollback)
+    // কোনো ভুল হলে সব রোলব্যাক হবে (ক্রেডিট যোগ হবে না)
     await session.abortTransaction();
-
     throw error;
   } finally {
-    // সেশন শেষ করা
     session.endSession();
   }
 };

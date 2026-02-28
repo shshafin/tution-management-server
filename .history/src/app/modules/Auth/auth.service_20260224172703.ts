@@ -145,46 +145,22 @@ const forgotPassword = async (email: string) => {
 
   const resetUILink = `${config.frontend_url}/${rolePath}/reset-password?token=${resetToken}`;
 
-  // 📧 প্রিমিয়াম পাসওয়ার্ড রিসেট টেমপ্লেট
   const emailHtml = `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; margin: 0; background-color: #f3f4f6;">
-      <div style="max-width: 500px; margin: 40px auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
-        
-        <div style="background: #7c3aed; padding: 30px; text-align: center;">
-          <h2 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800;">পাসওয়ার্ড রিসেট</h2>
-        </div>
-
-        <div style="padding: 40px 30px; text-align: center;">
-          <p style="color: #4b5563; font-size: 16px; margin-bottom: 25px; text-align: left;">
-            হ্যালো <strong>${user.name || 'ইউজার'}</strong>,
-          </p>
-          <p style="color: #4b5563; line-height: 1.6; font-size: 15px; text-align: left; margin-bottom: 30px;">
-            আপনি আপনার <strong>Tutorliy</strong> অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার জন্য রিকোয়েস্ট করেছেন। নিচের বাটনে ক্লিক করে নতুন পাসওয়ার্ড সেট করুন।
-          </p>
-
-          <a href="${resetUILink}" style="background: #7c3aed; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px; display: inline-block; transition: background 0.3s ease;">পাসওয়ার্ড রিসেট করুন</a>
-
-          <div style="margin-top: 30px; padding: 15px; background: #fff7ed; border-radius: 12px; border: 1px solid #ffedd5;">
-            <p style="color: #9a3412; font-size: 13px; margin: 0; font-weight: 600;">
-              ⚠️ এই লিংকটি মাত্র ১০ মিনিটের জন্য কার্যকর থাকবে।
-            </p>
-          </div>
-        </div>
-
-        <div style="padding: 20px 30px; background: #f9fafb; text-align: center; border-top: 1px solid #f3f4f6;">
-          <p style="font-size: 12px; color: #9ca3af; margin: 0;">যদি আপনি এই রিকোয়েস্ট না করে থাকেন, তবে ইমেইলটি ইগনোর করুন।</p>
-          <p style="font-size: 12px; color: #9ca3af; margin: 5px 0 0;">ধন্যবাদ, <strong>Tutorliy Team</strong></p>
-        </div>
+    <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 500px; margin: auto;">
+      <h2 style="color: #7c3aed; text-align: center;">Password Reset Request</h2>
+      <p style="color: #444; line-height: 1.6;">হ্যালো <strong>${user.name || 'ইউজার'}</strong>,</p>
+      <p style="color: #444; line-height: 1.6;">আপনি আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার জন্য রিকোয়েস্ট করেছেন। নিচের বাটনে ক্লিক করে আপনার পাসওয়ার্ডটি রিসেট করুন। মনে রাখবেন, এই লিংকটি মাত্র <strong>১০ মিনিটের</strong> জন্য কাজ করবে।</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetUILink}" style="background: #7c3aed; color: white; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">পাসওয়ার্ড রিসেট করুন</a>
       </div>
+      
+      <p style="font-size: 12px; color: #888; border-top: 1px solid #eee; pt: 15px;">যদি আপনি এই রিকোয়েস্ট না করে থাকেন, তবে এই ইমেইলটি ইগনোর করুন। আপনার নিরাপত্তা আমাদের কাছে গুরুত্বপূর্ণ।</p>
+      <p style="font-size: 12px; color: #888;">ধন্যবাদ, <br> Tutorliy Team</p>
     </div>
   `;
 
-  // 📍 সাবজেক্ট এখন ডাইনামিক
-  await sendEmail(
-    user.email,
-    emailHtml,
-    'আপনার পাসওয়ার্ড রিসেট করার লিংক (Tutorliy) 🔐',
-  );
+  await sendEmail(user.email, emailHtml);
 
   return null;
 };

@@ -1,6 +1,3 @@
-import nodemailer from 'nodemailer';
-import config from '../config';
-
 export const sendEmail = async (
   to: string,
   html: string,
@@ -19,7 +16,7 @@ export const sendEmail = async (
   await transporter.sendMail({
     from: '"Tutorliy Support" <noreply@tutorliy.com>',
     to,
-    subject: subject,
+    subject: subject, // এখন ডাইনামিক সাবজেক্ট
     html,
   });
 };

@@ -135,7 +135,7 @@ const verifyAndConfirmPayment = async (gatewayInvoiceId: string) => {
   } catch (error) {
     // কোনো এরর হলে ক্রেডিট বা পেমেন্ট স্ট্যাটাস আগের অবস্থায় ফিরে যাবে (Rollback)
     await session.abortTransaction();
-
+    console.error('Payment Verification Error:', error);
     throw error;
   } finally {
     // সেশন শেষ করা

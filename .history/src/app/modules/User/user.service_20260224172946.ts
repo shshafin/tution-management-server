@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { User } from './user.model';
 import { IUser } from './user.interface';
 import QueryBuilder from '../../builder/QueryBuilder';

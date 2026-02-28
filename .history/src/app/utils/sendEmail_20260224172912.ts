@@ -1,15 +1,11 @@
 import nodemailer from 'nodemailer';
 import config from '../config';
 
-export const sendEmail = async (
-  to: string,
-  html: string,
-  subject: string = 'Tutorliy Notification',
-) => {
+export const sendEmail = async (to: string, html: string) => {
   const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false, // TLS এর জন্য false
+    secure: config.node_env === 'production',
     auth: {
       user: config.email_user,
       pass: config.email_pass,
@@ -19,7 +15,8 @@ export const sendEmail = async (
   await transporter.sendMail({
     from: '"Tutorliy Support" <noreply@tutorliy.com>',
     to,
-    subject: subject,
+    subject: 'Reset your password within 10 mins!',
+    text: '',
     html,
   });
 };
