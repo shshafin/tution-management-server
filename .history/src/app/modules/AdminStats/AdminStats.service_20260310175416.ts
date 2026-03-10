@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-unused-vars */
 import { Payment } from '../Payment/payment.model';
 import { User } from '../User/user.model';
@@ -6,7 +7,6 @@ import { TutorApplication } from '../TutorApplication/tutorApplication.model';
 import moment from 'moment'; // 🟢 'npm install moment' করে নিস, সময় হ্যান্ডেল করা সহজ হবে
 
 const getDashboardStatsFromDB = async () => {
-  const now = new Date();
   const startOfToday = moment().startOf('day').toDate();
   const startOfWeek = moment().startOf('week').toDate();
   const startOfMonth = moment().startOf('month').toDate();
@@ -18,6 +18,8 @@ const getDashboardStatsFromDB = async () => {
     totalApps,
     incomeStats,
     growthStats,
+    dailyTutorGrowth,
+    dailyEarnings,
   ] = await Promise.all([
     // ১. টোটাল আর্নিং
     Payment.aggregate([
@@ -72,6 +74,42 @@ const getDashboardStatsFromDB = async () => {
       { $sort: { _id: 1 } },
       { $project: { month: '$_id', tutors: 1, _id: 0 } },
     ]),
+
+    // ৫. ডেইলি টিউটর রেজিস্ট্রেশন (গত ১৪ দিন)
+    User.aggregate([
+      {
+        $match: {
+          role: 'tutor',
+          createdAt: { $gte: moment().subtract(14, 'days').toDate() },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%m/%d', date: '$createdAt' } },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      { $project: { day: '$_id', count: 1, _id: 0 } },
+    ]),
+
+    // ৬. ডেইলি পেমেন্ট (গত ১৪ দিন)
+    Payment.aggregate([
+      {
+        $match: {
+          status: 'completed',
+          createdAt: { $gte: moment().subtract(14, 'days').toDate() },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%m/%d', date: '$createdAt' } },
+          amount: { $sum: '$amount' },
+        },
+      },
+      { $sort: { _id: 1 } },
+      { $project: { day: '$_id', amount: 1, _id: 0 } },
+    ]),
   ]);
 
   return {
@@ -84,7 +122,9 @@ const getDashboardStatsFromDB = async () => {
       weekly: incomeStats[0]?.weekly || 0,
       monthly: incomeStats[0]?.monthly || 0,
     },
-    tutorGrowth: growthStats, // এটা সরাসরি চার্টে বসবে (Array of objects)
+    tutorGrowth: growthStats,
+    dailyTutorGrowth,
+    dailyEarnings,
   };
 };
 

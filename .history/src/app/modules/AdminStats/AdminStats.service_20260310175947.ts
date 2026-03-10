@@ -154,7 +154,7 @@ const getDashboardStatsFromDB = async () => {
     Payment.find({ status: 'completed' })
       .sort({ createdAt: -1 })
       .limit(10)
-      .populate('tutor', 'name email image')
+      .populate('userId', 'name email image')
       .lean(),
 
     // ১০. Payment status breakdown
