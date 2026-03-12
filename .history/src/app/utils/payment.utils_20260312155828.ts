@@ -1,6 +1,10 @@
+/* eslint-disable no-console */
 import axios from 'axios';
 import config from '../config';
 
+/**
+ * ZiniPay-তে পেমেন্ট রিকোয়েস্ট পাঠানোর ফাংশন
+ */
 export const initiatePayment = async (paymentData: any) => {
   const payload = {
     cus_name: paymentData.cus_name,
@@ -43,8 +47,13 @@ export const verifyPayment = async (invoiceId: string) => {
         },
       },
     );
+    console.log('ZiniPay verify response:', JSON.stringify(response.data));
     return response.data;
   } catch (error: any) {
+    console.log(
+      'ZiniPay verify error:',
+      error?.response?.data || error.message,
+    );
     return null;
   }
 };
