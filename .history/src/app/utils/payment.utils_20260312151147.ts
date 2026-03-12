@@ -37,8 +37,8 @@ export const verifyPayment = async (invoiceId: string) => {
     const response = await axios.post(
       config.zinipay.verify_url as string,
       {
-        invoiceId: invoiceId, // ডক অনুযায়ী ফিল্ড নাম
-        apiKey: config.zinipay.api_key, // ডক অনুযায়ী বডিতেও এপিআই কি চায়
+        invoiceId: invoiceId,
+        apiKey: config.zinipay.api_key,
       },
       {
         headers: {
@@ -47,8 +47,13 @@ export const verifyPayment = async (invoiceId: string) => {
         },
       },
     );
-    return response.data; // ডকের রেসপন্স অবজেক্ট সরাসরি রিটার্ন
-  } catch (error) {
+    console.log('ZiniPay verify response:', JSON.stringify(response.data));
+    return response.data;
+  } catch (error: any) {
+    console.log(
+      'ZiniPay verify error:',
+      error?.response?.data || error.message,
+    );
     return null;
   }
 };
