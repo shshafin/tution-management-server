@@ -51,11 +51,7 @@ const verifyAndConfirmPayment = async (gatewayInvoiceId: string) => {
   const paymentData = await verifyPayment(gatewayInvoiceId);
 
   if (!paymentData || paymentData.status !== 'COMPLETED') {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'Payment not completed or invalid!',
-      '',
-    );
+    throw new AppError(httpStatus.BAD_REQUEST, 'Payment not completed or invalid!', '');
   }
 
   const tutorId = paymentData.metadata?.tutorId;
@@ -77,18 +73,15 @@ const verifyAndConfirmPayment = async (gatewayInvoiceId: string) => {
     .populate('package');
 
   if (!paymentRecord) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      'Matching pending payment record not found!',
-      '',
-    );
+    throw new AppError(httpStatus.NOT_FOUND, 'Matching pending payment record not found!', '');
   }
 
   const pkg = paymentRecord.package as any;
 
-  await User.findByIdAndUpdate(paymentRecord.tutor, {
-    $inc: { credits: pkg.credits },
-  });
+  await User.findByIdAndUpdate(
+    paymentRecord.tutor,
+    { $inc: { credits: pkg.credits } },
+  );
 
   paymentRecord.status = 'completed';
   paymentRecord.invoiceId = gatewayInvoiceId;
