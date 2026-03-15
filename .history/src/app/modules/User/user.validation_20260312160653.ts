@@ -28,7 +28,13 @@ const createTutorSchema = z.object({
     email: z.string().email(),
     password: z.string().min(6),
     phone: z.string(),
-    location: z.string(),
+    location: z.object({
+      shortArea: z.string().min(1, 'এলাকার নাম প্রয়োজন'),
+      mapAddress: z.string().min(1, 'পুরো ঠিকানা প্রয়োজন'),
+      coordinates: z
+        .array(z.number())
+        .length(2, 'Coordinates must be [longitude, latitude]'),
+    }),
     gender: z.enum(['male', 'female']),
     tutorType: z.array(z.enum(['online', 'offline'])),
     teachingMediums: z.array(z.enum(TeachingMediums)),
@@ -49,7 +55,7 @@ const createTutorSchema = z.object({
       ]),
       major: z.enum(BachelorMajors),
       customMajor: z.string().optional(),
-      result: z.string(),
+      result: z.string().optional(),
       passingYear: z.string().length(4),
     }),
   }),
