@@ -5,6 +5,7 @@ import { IJobPost } from './jobPost.interface';
 import { JobPost } from './jobPost.model';
 import { OTP } from '../OTP/otp.model';
 import { sendSMS } from '../../utils/sendSMS';
+import { TutorApplication } from '../TutorApplication/tutorApplication.model';
 
 /**
  * ১. টিউশনি পোস্ট তৈরি ও পাবলিশিং লজিক
@@ -67,102 +68,156 @@ const createJobPostIntoDB = async (payload: IJobPost) => {
 };
 
 /**
- * ২. টিউটরদের জন্য ডাইনামিক জব ফিড (Smart Filtering)
+ * ২. টিউটরদের জন্য ডাইনামিক জব ফিড (Privacy Protected)
  */
-const getTutorJobFeedFromDB = async (query: Record<string, unknown>) => {
+const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
   let searchTerm = '';
   if (query?.searchTerm) searchTerm = query.searchTerm as string;
 
-  // সার্চযোগ্য ফিল্ডস
-  const searchableFields = ['location', 'classLevel'];
-
-  // বেসিক কোয়েরি (Status, OTP, and Application Limit)
+  // ১. বেসিক ফিল্টার (পাবলিশড এবং যেগুলোতে ৫টির কম আবেদন পড়েছে)
   const filterQuery: any = {
     status: 'published',
     isOtpVerified: true,
-    totalApplications: { $lt: 5 }, // ৫ জনের বেশি আবেদন করলে ফিডে দেখাবে না
+    totalApplications: { $lt: 5 },
   };
 
-  /**
-   * 🕵️‍♂️ ডাইনামিক ফিল্টারিং (Tutor Profile Match)
-   * যদি কুয়েরি প্যারামিটারে টিউটর প্রোফাইলের ডেটা পাঠানো হয়
-   */
+  // ২. ডাইনামিক ফিল্টারিং (Gender, Type, Category, Class)
+  if (query.tutorGender) {
+    // টিউটর 'male' হলে সে 'male' এবং 'any' দুই ধরণের জবই দেখবে
+    filterQuery.tutorGenderPreference = { $in: [query.tutorGender, 'any'] };
+  }
   if (query.tutoringType) filterQuery.tutoringType = query.tutoringType;
   if (query.studyCategory) filterQuery.studyCategory = query.studyCategory;
   if (query.classLevel) filterQuery.classLevel = query.classLevel;
-  if (query.tutorGenderPreference) {
-    // 'any' অথবা টিউটরের জেন্ডার এর সাথে ম্যাচিং
-    filterQuery.tutorGenderPreference = {
-      $in: [query.tutorGenderPreference, 'any'],
+
+  // ৩. সাবজেক্ট ব্যাকগ্রাউন্ড ফিল্টার (টিউটরের ডিসিপ্লিন অনুযায়ী)
+  if (query.tutorDiscipline) {
+    filterQuery.$and = filterQuery.$and || [];
+    filterQuery.$and.push({
+      $or: [
+        { 'specialPreferences.isSubjectBackgroundRequired': false },
+        {
+          'specialPreferences.selectedSubjectBackground': {
+            $in: [query.tutorDiscipline],
+          },
+        },
+      ],
+    });
+  }
+
+  // ৪. 🚀 Geo-Spatial Radius Search (Fix)
+  // 📍 এখান থেকে !searchTerm কন্ডিশন সরিয়ে দেওয়া হয়েছে
+  const shouldApplyRadius =
+    (query.tutoringType === 'offline' || !query.tutoringType) &&
+    query.latitude &&
+    query.longitude;
+
+  if (shouldApplyRadius) {
+    const config = await AdminConfig.findOne();
+    const radiusInMeters = (config?.jobSearchRadius || 5) * 1000;
+
+    filterQuery.location = {
+      $near: {
+        $geometry: {
+          type: 'Point',
+          coordinates: [Number(query.longitude), Number(query.latitude)],
+        },
+        $maxDistance: radiusInMeters,
+      },
     };
   }
 
-  // সাবজেক্ট ব্যাকগ্রাউন্ড ফিল্টার (যদি রিকোয়ার্ড হয়)
-  if (query.discipline) {
-    filterQuery.$or = [
-      { 'specialPreferences.isSubjectBackgroundRequired': false },
-      {
-        'specialPreferences.selectedSubjectBackground': {
-          $in: [query.discipline],
-        },
-      },
-    ];
+  // ৫. 🔍 স্মার্ট টেক্সট সার্চ (Area, Class, Subjects)
+  // 📍 সার্চ টার্মকে filterQuery-র সাথে $and করে দেওয়া হয়েছে যাতে মেইন ফিল্টার ব্রেক না হয়
+  if (searchTerm) {
+    const searchRegex = new RegExp(searchTerm, 'i');
+
+    filterQuery.$and = filterQuery.$and || [];
+    filterQuery.$and.push({
+      $or: [
+        { 'location.shortArea': searchRegex },
+        { 'location.mapAddress': searchRegex },
+        { classLevel: searchRegex },
+        { subjects: { $in: [searchRegex] } },
+      ],
+    });
   }
 
-  // সার্চ লজিক
-  const searchCondition = {
-    $or: [
-      ...searchableFields.map((field) => ({
-        [field]: { $regex: searchTerm, $options: 'i' },
-      })),
-      { subjects: { $in: [new RegExp(searchTerm, 'i')] } },
-    ],
-  };
+  // ৬. কুয়েরি এক্সিকিউশন
+  // 📍 নোট: এখন সব লজিক filterQuery-র ভেতরেই আছে
+  let jobQuery = JobPost.find(filterQuery).select(
+    '-guardianPhone -location.detailedAddress',
+  );
 
-  const excludeFields = [
-    'searchTerm',
-    'sort',
-    'limit',
-    'page',
-    'fields',
-    'tutoringType',
-    'studyCategory',
-    'classLevel',
-    'tutorGenderPreference',
-    'discipline',
-  ];
-  const finalQuery = { ...query };
-  excludeFields.forEach((el) => delete finalQuery[el]);
+  // ৭. সর্টিং লজিক
+  // 📍 মঙ্গোডিবিতে $near থাকলে ম্যানুয়াল সর্ট করা যায় না (সেটা ডিস্টেন্স অনুযায়ী অটো সর্ট হয়)
+  const isRadiusSearch = !!filterQuery.location;
 
-  // কম্বাইন্ড কোয়েরি
-  const resultQuery = JobPost.find({
-    ...filterQuery,
-    ...searchCondition,
-    ...finalQuery,
-  })
-    .select('-guardianPhone') // টিউটর সরাসরি নাম্বার দেখবে না
-    .sort(query.sort ? (query.sort as string) : '-createdAt');
+  if (!isRadiusSearch) {
+    jobQuery = jobQuery.sort('-createdAt');
+  }
 
-  // পেজিনেশন লজিক (শাফিন, তুই চাইলে এখানে pagination মেথড অ্যাড করতে পারিস)
-  return await resultQuery;
+  const result = await jobQuery.lean();
+  return result;
 };
 
 /**
- * ৩. সিঙ্গেল জব ডিটেইলস
+ * ৩. সিঙ্গেল জব ডিটেইলস (Privacy & Application Logic)
  */
-const getSingleJobPostFromDB = async (id: string, role?: string) => {
-  const query = JobPost.findById(id);
+const getSingleJobPostFromDB = async (
+  id: string,
+  userId?: string,
+  role?: string,
+) => {
+  // ১. শুরুতে ফোন ও ডিটেইল অ্যাড্রেস বাদে ডেটা নেওয়া
+  const job = await JobPost.findById(id)
+    .select('-guardianPhone -location.detailedAddress')
+    .lean();
 
-  // রোল অনুযায়ী ডাটা হাইড করা
-  if (role === 'tutor') {
-    query.select('-guardianPhone');
+  if (!job) {
+    // ৩টা আর্গুমেন্ট: statusCode, errorMessage, stack/extraMessage
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'Job post not found',
+      'ID matches no record',
+    );
   }
 
-  const result = await query;
-  if (!result)
-    throw new AppError(httpStatus.NOT_FOUND, 'Job post not found', '');
+  let isApplied = false;
+  let revealedPhone = undefined;
+  let revealedDetail = undefined;
 
-  return result;
+  // ২. যদি টিউটর লগইন থাকে, চেক করো সে অ্যাপ্লাই করেছে কি না
+  if (role === 'tutor' && userId) {
+    const application = await TutorApplication.findOne({
+      tutor: userId,
+      jobPost: id,
+    });
+
+    if (application) {
+      isApplied = true;
+      // অ্যাপ্লাই করলে ডাটাবেজ থেকে আসল ফোন আর ডিটেইল অ্যাড্রেস নিয়ে আসো
+      const fullData = await JobPost.findById(id)
+        .select('guardianPhone location.detailedAddress')
+        .lean();
+
+      revealedPhone = fullData?.guardianPhone;
+      revealedDetail = fullData?.location?.detailedAddress;
+    }
+  }
+
+  // ৩. রেজাল্ট মার্জ করা (তোর ইন্টারফেস অনুযায়ী)
+  return {
+    ...job,
+    isApplied,
+    guardianPhone: isApplied ? revealedPhone : 'Apply to see contact',
+    location: {
+      ...job.location,
+      detailedAddress: isApplied
+        ? revealedDetail
+        : 'Detailed address is hidden',
+    },
+  };
 };
 
 /**
@@ -211,11 +266,7 @@ const getAllJobsFromDB = async (query: Record<string, unknown>) => {
   if (query?.searchTerm) searchTerm = query.searchTerm as string;
 
   // সার্চযোগ্য ফিল্ডস
-  const searchableFields = [
-    'location',
-    'classLevel',
-    'guardianPhone',
-  ];
+  const searchableFields = ['location', 'classLevel', 'guardianPhone'];
 
   // সার্চ কন্ডিশন
   const searchCondition = {
