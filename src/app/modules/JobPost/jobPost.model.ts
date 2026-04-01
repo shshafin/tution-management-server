@@ -18,7 +18,7 @@ const jobPostSchema = new Schema<IJobPost>(
     location: {
       shortArea: { type: String, required: true },
       mapAddress: { type: String, required: true },
-      detailedAddress: { type: String, required: true },
+      detailedAddress: { type: String },
 
       type: {
         type: String,

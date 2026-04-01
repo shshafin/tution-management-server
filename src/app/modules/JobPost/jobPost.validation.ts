@@ -62,9 +62,7 @@ const createJobPostValidationSchema = z.object({
         mapAddress: z
           .string({ required_error: 'ম্যাপের ঠিকানা প্রয়োজন' })
           .min(1),
-        detailedAddress: z
-          .string({ required_error: 'বাসার বিস্তারিত ঠিকানা দিন' })
-          .min(1),
+        detailedAddress: z.string().optional(),
         coordinates: z
           .array(z.number())
           .length(2, 'সঠিক স্থানাঙ্ক (Longitude & Latitude) দিন'),

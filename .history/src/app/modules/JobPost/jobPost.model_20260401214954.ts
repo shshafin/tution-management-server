@@ -16,7 +16,10 @@ const jobPostSchema = new Schema<IJobPost>(
     guardianPhone: { type: String, required: true },
     guardianName: { type: String, required: true },
     location: {
-      address: { type: String, required: true },
+      shortArea: { type: String, required: true },
+      mapAddress: { type: String, required: true },
+      detailedAddress: { type: String },
+
       type: {
         type: String,
         enum: ['Point'],
@@ -95,7 +98,8 @@ const jobPostSchema = new Schema<IJobPost>(
   },
 );
 
-// 🔍 Optimization: ফিল্টারিং ফাস্ট করার জন্য ইনডেক্সিং
+jobPostSchema.index({ location: '2dsphere' });
+
 jobPostSchema.index({
   status: 1,
   isOtpVerified: 1,

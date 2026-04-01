@@ -48,19 +48,29 @@ const SUBJECT_BACKGROUNDS = [
 ] as const;
 
 const createJobPostValidationSchema = z.object({
-
-      // 🟢 'home' এর বদলে 'offline' (Tutor Sync)
+  body: z
+    .object({
       tutoringType: z.enum(['offline', 'online'], {
         required_error: 'টিউশনি টাইপ সিলেক্ট করুন',
       }),
       guardianPhone: z
         .string()
-        .regex(/^01[3-9]\d{8}$/, 'সঠিক মোবাইল নাম্বার দিন'),
-      location: z.string({ required_error: 'লোকেশন দেওয়া আবশ্যক' }),
+        .regex(/^01[2-9]\d{8}$/, 'সঠিক মোবাইল নাম্বার দিন'),
+      guardianName: z.string({ required_error: 'গার্ডিয়ানের নাম দিন' }), // 🟢
+      location: z.object({
+        shortArea: z.string({ required_error: 'এলাকার নাম দিতে হবে' }).min(1),
+        mapAddress: z
+          .string({ required_error: 'ম্যাপের ঠিকানা প্রয়োজন' })
+          .min(1),
+        detailedAddress: z.string().optional(),
+        coordinates: z
+          .array(z.number())
+          .length(2, 'সঠিক স্থানাঙ্ক (Longitude & Latitude) দিন'),
+      }),
+
       studentGender: z.enum(['male', 'female']),
       tutorGenderPreference: z.enum(['male', 'female', 'any']),
 
-      // 🟢 ক্যাটাগরিগুলো এখন Lowercase (Tutor Sync)
       studyCategory: z.enum([
         'bangla medium',
         'english medium',

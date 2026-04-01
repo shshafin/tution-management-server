@@ -16,14 +16,9 @@ const jobPostSchema = new Schema<IJobPost>(
     guardianPhone: { type: String, required: true },
     guardianName: { type: String, required: true },
     location: {
-      // ১. কার্ডে দেখানোর জন্য ছোট এলাকা (উদা: মালিবাগ)
       shortArea: { type: String, required: true },
-
-      // ২. গুগলের অরিজিনাল ফুল অ্যাড্রেস (উদা: মালিবাগ চৌধুরী পাড়া, ঢাকা)
       mapAddress: { type: String, required: true },
-
-      // ৩. ইউজারের নিজের লেখা বিস্তারিত ঠিকানা (উদা: বাসা-১২, রোড-৫) - এটা থাকবে হিডেন
-      detailedAddress: { type: String, required: true },
+      detailedAddress: { type: String },
 
       type: {
         type: String,

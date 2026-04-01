@@ -1,37 +1,76 @@
 import { z } from 'zod';
 
 const ALL_SUBJECTS = [
-  'Bangla', 'English', 'Mathematics', 'ICT', 'Bangladesh & Global Studies',
-  'Religion & Moral Studies', 'Physical Education & Health', 'Physics',
-  'Chemistry', 'Biology', 'Higher Mathematics', 'Accounting',
-  'Business Entrepreneurship', 'Finance & Banking', 'Business Organization & Management',
-  'Economics', 'History', 'Civics', 'Geography', 'English Literature',
-  'Additional Mathematics', 'Computer Science', 'Business Studies', 'Sociology',
-  'Psychology', 'Environmental Management', 'Global Perspectives', 'Law',
-  'Statistics', 'Media Studies', 'Art & Design', 'Music', 'Drama', 'Theory of Knowledge',
+  'Bangla',
+  'English',
+  'Mathematics',
+  'ICT',
+  'Bangladesh & Global Studies',
+  'Religion & Moral Studies',
+  'Physical Education & Health',
+  'Physics',
+  'Chemistry',
+  'Biology',
+  'Higher Mathematics',
+  'Accounting',
+  'Business Entrepreneurship',
+  'Finance & Banking',
+  'Business Organization & Management',
+  'Economics',
+  'History',
+  'Civics',
+  'Geography',
+  'English Literature',
+  'Additional Mathematics',
+  'Computer Science',
+  'Business Studies',
+  'Sociology',
+  'Psychology',
+  'Environmental Management',
+  'Global Perspectives',
+  'Law',
+  'Statistics',
+  'Media Studies',
+  'Art & Design',
+  'Music',
+  'Drama',
+  'Theory of Knowledge',
 ] as const;
 
 // টিউটর মডেলে থাকা Discipline এর সাথে সিঙ্ক করা
 const SUBJECT_BACKGROUNDS = [
-  'engineering', 'medical', 'business', 'science', 'social science', 'fine_arts'
+  'engineering',
+  'medical',
+  'business',
+  'science',
+  'social science',
+  'fine_arts',
 ] as const;
 
 const createJobPostValidationSchema = z.object({
   body: z
     .object({
-      // 🟢 'home' এর বদলে 'offline' (Tutor Sync)
       tutoringType: z.enum(['offline', 'online'], {
         required_error: 'টিউশনি টাইপ সিলেক্ট করুন',
       }),
       guardianPhone: z
         .string()
-        .regex(/^01[3-9]\d{8}$/, 'সঠিক মোবাইল নাম্বার দিন'),
-      location: z.string({ required_error: 'লোকেশন দেওয়া আবশ্যক' }),
-      district: z.string({ required_error: 'জেলা দেওয়া আবশ্যক' }), // নতুন ফিল্ড
+        .regex(/^01[2-9]\d{8}$/, 'সঠিক মোবাইল নাম্বার দিন'),
+      guardianName: z.string({ required_error: 'গার্ডিয়ানের নাম দিন' }), // 🟢
+      location: z.object({
+        shortArea: z.string({ required_error: 'এলাকার নাম দিতে হবে' }).min(1),
+        mapAddress: z
+          .string({ required_error: 'ম্যাপের ঠিকানা প্রয়োজন' })
+          .min(1),
+        detailedAddress: z.string().optional(),
+        coordinates: z
+          .array(z.number())
+          .length(2, 'সঠিক স্থানাঙ্ক (Longitude & Latitude) দিন'),
+      }),
+
       studentGender: z.enum(['male', 'female']),
       tutorGenderPreference: z.enum(['male', 'female', 'any']),
-      
-      // 🟢 ক্যাটাগরিগুলো এখন Lowercase (Tutor Sync)
+
       studyCategory: z.enum([
         'bangla medium',
         'english medium',
@@ -40,7 +79,7 @@ const createJobPostValidationSchema = z.object({
       ]),
 
       classLevel: z.string({ required_error: 'ক্লাস লেভেল আবশ্যক' }),
-      
+
       subjects: z
         .array(z.enum(ALL_SUBJECTS))
         .min(1, 'অন্তত একটি বিষয় সিলেক্ট করুন'),
@@ -64,7 +103,7 @@ const createJobPostValidationSchema = z.object({
         'tutor_availability',
       ]),
       // ১ থেকে ৭ দিনের সংখ্যা
-      daysPerWeek: z.number().min(1).max(7), 
+      daysPerWeek: z.number().min(1).max(7),
       demoClassDate: z.string().transform((val) => new Date(val)),
     })
     .refine((data) => data.maxSalary >= data.minSalary, {
