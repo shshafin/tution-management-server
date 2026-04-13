@@ -3,6 +3,7 @@ export const TeachingMediums = [
   'english medium',
   'english version',
   'admission test',
+  'specialized learning',
 ] as const;
 
 export const DaysOfWeek = [
@@ -29,15 +30,40 @@ export const TeachingClasses = [
   'Class 7',
   'Class 8',
   'Class 9',
-  'Class 10',
   'SSC',
-  'HSC',
+  'HSC 1st Year',
+  'HSC 2nd Year',
   'A-Level(AS)',
   'A-Level(A2)',
   'Dhaka University Admission',
   'BUET Admission',
   'Medical Admission',
   'Private University Admission',
+] as const;
+
+// 📚 Specialized Learning এর জন্য আলাদা ক্লাস/সাবজেক্ট লিস্ট
+export const SpecializedLearningClasses = [
+  'Quran Learning',
+  'Bangla Language Learning',
+  'English Language Learning',
+  'French Language Learning',
+] as const;
+
+// 🕌 মাদ্রাসা মিডিয়ামের ক্লাস লিস্ট
+export const MadrasaClasses = [
+  'Nursery',
+  'Class 1',
+  'Class 2',
+  'Class 3',
+  'Class 4',
+  'Class 5',
+  'Class 6',
+  'Class 7',
+  'Class 8',
+  'Class 9',
+  'দাখিল / SSC',
+  'আলিম HSC 1st',
+  'আলিম HSC 2nd',
 ] as const;
 
 export const BachelorMajors = [

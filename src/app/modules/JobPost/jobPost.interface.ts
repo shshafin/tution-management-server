@@ -45,7 +45,8 @@ export type TStudyCategory =
   | 'bangla medium'
   | 'english medium'
   | 'english version'
-  | 'admission test';
+  | 'admission test'
+  | 'specialized learning';
 
 // ৩. টিউটর সাবজেক্ট ব্যাকগ্রাউন্ড (Synced with Tutor Discipline)
 export type TSubjectBackground =
@@ -70,15 +71,22 @@ export type TClassLevel =
   | 'Class 7'
   | 'Class 8'
   | 'Class 9'
-  | 'Class 10'
   | 'SSC'
-  | 'HSC'
+  | 'HSC 1st Year'
+  | 'HSC 2nd Year'
   | 'A-Level(AS)'
   | 'A-Level(A2)'
   | 'Dhaka University Admission'
   | 'BUET Admission'
   | 'Medical Admission'
-  | 'Private University Admission';
+  | 'Private University Admission'
+  | 'Quran Learning'
+  | 'Bangla Language Learning'
+  | 'English Language Learning'
+  | 'French Language Learning'
+  | 'দাখিল / SSC'
+  | 'আলিম HSC 1st'
+  | 'আলিম HSC 2nd';
 
 export type TPreferredTime =
   | 'morning'
@@ -88,7 +96,7 @@ export type TPreferredTime =
 
 export interface IJobPost {
   guardianId?: Types.ObjectId;
-  tutoringType: 'offline' | 'online';
+  tutoringType?: 'offline' | 'online' | 'both';
   guardianPhone: string;
   guardianName: string;
   location: {

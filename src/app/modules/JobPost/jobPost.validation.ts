@@ -50,9 +50,9 @@ const SUBJECT_BACKGROUNDS = [
 const createJobPostValidationSchema = z.object({
   body: z
     .object({
-      tutoringType: z.enum(['offline', 'online'], {
+      tutoringType: z.enum(['offline', 'online', 'both'], {
         required_error: 'টিউশনি টাইপ সিলেক্ট করুন',
-      }),
+      }).optional(),
       guardianPhone: z
         .string()
         .regex(/^01[2-9]\d{8}$/, 'সঠিক মোবাইল নাম্বার দিন'),
@@ -76,6 +76,7 @@ const createJobPostValidationSchema = z.object({
         'english medium',
         'english version',
         'admission test',
+        'specialized learning',
       ]),
 
       classLevel: z.string({ required_error: 'ক্লাস লেভেল আবশ্যক' }),

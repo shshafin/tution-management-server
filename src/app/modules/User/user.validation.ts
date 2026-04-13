@@ -6,21 +6,37 @@ import {
   TeachingMediums,
 } from './user.constant';
 
-const educationValidation = z.object({
-  background: z.enum([
-    'bangla medium',
-    'english medium',
-    'english version',
-    'Madrasa',
-  ]),
-  curriculum: z
-    .enum(['Edexcell curriculam', 'Cambridge curriculam', 'IB curriculam'])
-    .optional(),
-  institute: z.string().min(1),
-  group: z.enum(['science', 'commerce', 'humanities']),
-  result: z.string().min(1),
-  passingYear: z.string().length(4),
-});
+const educationValidation = z
+  .object({
+    background: z.enum([
+      'bangla medium',
+      'english medium',
+      'english version',
+      'Madrasa',
+      'specialized learning',
+    ]),
+    curriculum: z
+      .enum(['Edexcell curriculam', 'Cambridge curriculam', 'IB curriculam'])
+      .optional(),
+    institute: z.string().min(1),
+    group: z.enum(['science', 'commerce', 'humanities']),
+    result: z.string().min(1),
+    passingYear: z.string().length(4),
+  })
+  .refine(
+    (data) => {
+      // Curriculum শুধুমাত্র 'english medium' এর জন্য allowed
+      if (data.background !== 'english medium' && data.curriculum) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message:
+        'Curriculum (Edexcel/Cambridge/IB) শুধুমাত্র English Medium এর জন্য প্রযোজ্য',
+      path: ['curriculum'],
+    },
+  );
 
 const createTutorSchema = z.object({
   body: z.object({

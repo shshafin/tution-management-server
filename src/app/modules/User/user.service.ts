@@ -6,8 +6,20 @@ import { AdminConfig } from '../AdminConfig/adminConfig.model';
 import config from '../../config';
 import jwt from 'jsonwebtoken';
 import { sendEmail } from '../../utils/sendEmail';
+import httpStatus from 'http-status';
+import AppError from '../../errors/appError';
 
 const createTutorIntoDB = async (payload: IUser) => {
+  // 🔒 Duplicate Phone Number Check
+  const existingUser = await User.findOne({ phone: payload.phone });
+  if (existingUser) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      'এই নম্বরটি আগে ব্যবহার হয়েছে। অন্য নম্বর ব্যবহার করুন।',
+      'Duplicate phone number',
+    );
+  }
+
   const adminConfig = await AdminConfig.findOne();
   const signupBonus = adminConfig ? adminConfig.signupBonusCredits : 5;
 

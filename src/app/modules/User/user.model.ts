@@ -12,12 +12,23 @@ const BasicEducationSchema = new Schema(
   {
     background: {
       type: String,
-      enum: ['bangla medium', 'english medium', 'english version', 'Madrasa'],
+      enum: ['bangla medium', 'english medium', 'english version', 'Madrasa', 'specialized learning'],
       required: true,
     },
     curriculum: {
       type: String,
       enum: ['Edexcell curriculam', 'Cambridge curriculam', 'IB curriculam'],
+      validate: {
+        validator: function (this: { background: string }, value: string) {
+          // Curriculum শুধুমাত্র 'english medium' এ allowed
+          if (value && this.background !== 'english medium') {
+            return false;
+          }
+          return true;
+        },
+        message:
+          'Curriculum (Edexcel/Cambridge/IB) শুধুমাত্র English Medium এর জন্য প্রযোজ্য',
+      },
     },
     institute: { type: String, required: true },
     group: {
@@ -36,7 +47,7 @@ const UserSchema = new Schema<IUser, UserModel>(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true, select: 0 },
-    phone: { type: String, required: true },
+    phone: { type: String, required: true, unique: true },
     image: { type: String },
     role: {
       type: String,

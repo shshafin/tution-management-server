@@ -14,7 +14,9 @@ export interface IBasicEducation {
     | 'bangla medium'
     | 'english medium'
     | 'english version'
-    | 'Madrasa';
+    | 'Madrasa'
+    | 'specialized learning';
+  /** Curriculum শুধুমাত্র 'english medium' এর জন্য প্রযোজ্য। English Version এ এটি ব্যবহার করা যাবে না। */
   curriculum?: 'Edexcell curriculam' | 'Cambridge curriculam' | 'IB curriculam';
   institute: string;
   group: 'science' | 'commerce' | 'humanities';

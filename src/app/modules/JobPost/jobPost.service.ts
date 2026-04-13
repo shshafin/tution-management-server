@@ -11,6 +11,19 @@ import { TutorApplication } from '../TutorApplication/tutorApplication.model';
  * ১. টিউশনি পোস্ট তৈরি ও পাবলিশিং লজিক
  */
 const createJobPostIntoDB = async (payload: IJobPost) => {
+  // 🔒 Duplicate Phone Number Check (same phone দিয়ে একাধিক active post block)
+  const existingPost = await JobPost.findOne({
+    guardianPhone: payload.guardianPhone,
+    status: { $in: ['pending', 'published'] },
+  });
+  if (existingPost) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      'এই নম্বর দিয়ে আগে একটি পোস্ট করা হয়েছে।',
+      'Duplicate guardian phone for active job post',
+    );
+  }
+
   const config = await AdminConfig.findOne();
 
   if (config) {
@@ -83,7 +96,6 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
   if (query.tutorGender) {
     filterQuery.tutorGenderPreference = { $in: [query.tutorGender, 'any'] };
   }
-  if (query.tutoringType) filterQuery.tutoringType = query.tutoringType;
   if (query.studyCategory) filterQuery.studyCategory = query.studyCategory;
   if (query.classLevel) filterQuery.classLevel = query.classLevel;
 
@@ -101,25 +113,49 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
     });
   }
 
-  const shouldApplyRadius =
-    !searchTerm &&
-    (query.tutoringType === 'offline' || !query.tutoringType) &&
-    query.latitude &&
-    query.longitude;
-
-  if (shouldApplyRadius) {
-    const config = await AdminConfig.findOne();
-    const radiusInMeters = (config?.jobSearchRadius || 5) * 1000;
-    filterQuery.location = {
-      $near: {
-        $geometry: {
-          type: 'Point',
-          coordinates: [Number(query.longitude), Number(query.latitude)],
-        },
-        $maxDistance: radiusInMeters,
-      },
-    };
+  // --- NEW TUTORING TYPE & RADIUS LOGIC START ---
+  let isOnline = false;
+  let isOffline = false;
+  
+  if (query.tutorType) {
+    const ttString = Array.isArray(query.tutorType) ? query.tutorType.join(',') : String(query.tutorType);
+    const tt = ttString.toLowerCase();
+    isOnline = tt.includes('online') || tt.includes('both');
+    isOffline = tt.includes('offline') || tt.includes('both');
+  } else {
+    isOnline = true;
+    isOffline = true;
   }
+
+  const hasLocation = query.latitude && query.longitude;
+  const config = await AdminConfig.findOne();
+  const radiusInMeters = (config?.jobSearchRadius || 5) * 1000;
+
+  // Simple Logic Rules:
+  // - If tutor is Online (or Both): No location filter, no tutoringType filter.
+  // - If tutor is strictly Offline: Apply location filter, no tutoringType filter.
+  
+  if (!isOnline && isOffline) {
+    // strictly offline tutor
+    if (hasLocation && !searchTerm) {
+      filterQuery.location = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [Number(query.longitude), Number(query.latitude)],
+          },
+          $maxDistance: radiusInMeters,
+        },
+      };
+    }
+  }
+
+  // Explicit job tutoring type filter from frontend (if guardian searches for specific jobs)
+  if (query.tutoringType) {
+    filterQuery.$and = filterQuery.$and || [];
+    filterQuery.$and.push({ tutoringType: query.tutoringType });
+  }
+  // --- NEW TUTORING TYPE & RADIUS LOGIC END ---
 
   if (searchTerm) {
     // ড্যাশ ও স্পেস normalize করো: "mirpur 1" ↔ "mirpur-1"
@@ -272,7 +308,7 @@ const getAllJobsFromDB = async (query: Record<string, unknown>) => {
   if (query?.searchTerm) searchTerm = query.searchTerm as string;
 
   // সার্চযোগ্য ফিল্ডস
-  const searchableFields = ['location', 'classLevel', 'guardianPhone'];
+  const searchableFields = ['location', 'classLevel', 'guardianPhone', 'guardianName'];
 
   // সার্চ কন্ডিশন
   const searchCondition = {

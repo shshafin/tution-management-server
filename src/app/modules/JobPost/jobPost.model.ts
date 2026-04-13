@@ -10,8 +10,8 @@ const jobPostSchema = new Schema<IJobPost>(
 
     tutoringType: {
       type: String,
-      enum: ['offline', 'online'],
-      required: true,
+      enum: ['offline', 'online', 'both'],
+      required: false,
     },
     guardianPhone: { type: String, required: true },
     guardianName: { type: String, required: true },
@@ -44,6 +44,7 @@ const jobPostSchema = new Schema<IJobPost>(
         'english medium',
         'english version',
         'admission test',
+        'specialized learning',
       ],
       required: true,
     },

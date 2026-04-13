@@ -29,6 +29,9 @@ const getDashboardStatsFromDB = async () => {
     monthlyEarnings12,
     recentPayments,
     paymentStatusBreakdown,
+    todayNewTutors,
+    todayNewJobPosts,
+    todayNewApplications,
   ] = await Promise.all([
     // ১. টোটাল আর্নিং
     Payment.aggregate([
@@ -168,6 +171,22 @@ const getDashboardStatsFromDB = async () => {
       },
       { $project: { status: '$_id', count: 1, total: 1, _id: 0 } },
     ]),
+
+    // ১১. আজকের নতুন টিউটর রেজিস্ট্রেশন কাউন্ট
+    User.countDocuments({
+      role: 'tutor',
+      createdAt: { $gte: startOfToday },
+    }),
+
+    // ১২. আজকের নতুন জব পোস্ট কাউন্ট
+    JobPost.countDocuments({
+      createdAt: { $gte: startOfToday },
+    }),
+
+    // ১৩. আজকের নতুন টিউটর অ্যাপ্লিকেশন কাউন্ট
+    TutorApplication.countDocuments({
+      createdAt: { $gte: startOfToday },
+    }),
   ]);
 
   // গত মাস vs এই মাস growth %
@@ -210,6 +229,13 @@ const getDashboardStatsFromDB = async () => {
     // Payment details
     recentPayments,
     paymentStatusBreakdown,
+
+    // আজকের ডেইলি কাউন্টার
+    todayStats: {
+      newTutors: todayNewTutors,
+      newJobPosts: todayNewJobPosts,
+      newApplications: todayNewApplications,
+    },
   };
 };
 
