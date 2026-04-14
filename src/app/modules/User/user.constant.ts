@@ -4,6 +4,7 @@ export const TeachingMediums = [
   'english version',
   'admission test',
   'specialized learning',
+  'madrasa',
 ] as const;
 
 export const DaysOfWeek = [
@@ -39,6 +40,15 @@ export const TeachingClasses = [
   'BUET Admission',
   'Medical Admission',
   'Private University Admission',
+  // 🕌 মাদ্রাসা ক্লাস
+  'দাখিল / SSC',
+  'আলিম HSC 1st',
+  'আলিম HSC 2nd',
+  // 📚 Specialized Learning
+  'Quran Learning',
+  'Bangla Language Learning',
+  'English Language Learning',
+  'French Language Learning',
 ] as const;
 
 // 📚 Specialized Learning এর জন্য আলাদা ক্লাস/সাবজেক্ট লিস্ট
@@ -73,6 +83,7 @@ export const BachelorMajors = [
   'Civil Engineering',
   'Mechanical Engineering',
   'Biomedical Engineering',
+  'Software Engineering',
   'Architecture',
   'Environmental Science',
   'Physics',
