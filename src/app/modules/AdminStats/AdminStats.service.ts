@@ -97,7 +97,7 @@ const getDashboardStatsFromDB = async () => {
       },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt', timezone: '+06:00' } },
           tutors: { $sum: 1 },
         },
       },
@@ -115,7 +115,7 @@ const getDashboardStatsFromDB = async () => {
       },
       {
         $group: {
-          _id: { $dateToString: { format: '%m/%d', date: '$createdAt' } },
+          _id: { $dateToString: { format: '%m/%d', date: '$createdAt', timezone: '+06:00' } },
           count: { $sum: 1 },
         },
       },
@@ -133,7 +133,7 @@ const getDashboardStatsFromDB = async () => {
       },
       {
         $group: {
-          _id: { $dateToString: { format: '%m/%d', date: '$createdAt' } },
+          _id: { $dateToString: { format: '%m/%d', date: '$createdAt', timezone: '+06:00' } },
           amount: { $sum: '$amount' },
         },
       },
@@ -162,7 +162,7 @@ const getDashboardStatsFromDB = async () => {
       },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt', timezone: '+06:00' } },
           amount: { $sum: '$amount' },
           count: { $sum: 1 },
         },
@@ -216,7 +216,7 @@ const getDashboardStatsFromDB = async () => {
       },
       {
         $group: {
-          _id: { $dateToString: { format: '%m/%d', date: '$createdAt' } },
+          _id: { $dateToString: { format: '%m/%d', date: '$createdAt', timezone: '+06:00' } },
           count: { $sum: 1 },
         },
       },
@@ -233,7 +233,7 @@ const getDashboardStatsFromDB = async () => {
       },
       {
         $group: {
-          _id: { $dateToString: { format: '%m/%d', date: '$createdAt' } },
+          _id: { $dateToString: { format: '%m/%d', date: '$createdAt', timezone: '+06:00' } },
           count: { $sum: 1 },
         },
       },
