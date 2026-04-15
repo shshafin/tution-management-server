@@ -241,6 +241,12 @@ const getDashboardStatsFromDB = async () => {
     ]),
   ]);
 
+  // 🔍 Debug: todayStats values
+  console.log('todayStart:', startOfToday);
+  console.log('newJobPosts:', todayNewJobPosts);
+  console.log('newApplications:', todayNewApplications);
+  console.log('newTutors:', todayNewTutors);
+
   // গত মাস vs এই মাস growth %
   const thisMonthEarning = incomeStats[0]?.monthly || 0;
   const lastMonthEarning = lastMonthEarnings[0]?.total || 0;
