@@ -7,17 +7,17 @@ export const sendEmail = async (
   subject: string = 'Tutorliy Notification',
 ) => {
   const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // TLS এর জন্য false
+    host: config.smtp_host,
+    port: Number(config.smtp_port),
+    secure: false,
     auth: {
-      user: config.email_user,
-      pass: config.email_pass,
+      user: config.smtp_user,
+      pass: config.smtp_pass,
     },
   });
 
   await transporter.sendMail({
-    from: '"Tutorliy Support" <noreply@tutorliy.com>',
+    from: '"Tutorliy Support" <support@tutorliy.com>',
     to,
     subject: subject,
     html,
