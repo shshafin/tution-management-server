@@ -196,9 +196,10 @@ const getDashboardStatsFromDB = async () => {
       createdAt: { $gte: startOfToday },
     }),
 
-    // ১২. আজকের নতুন জব পোস্ট কাউন্ট
+    // ১২. আজকের নতুন জব পোস্ট কাউন্ট (শুধু published)
     JobPost.countDocuments({
       createdAt: { $gte: startOfToday },
+      status: 'published',
     }),
 
     // ১৩. আজকের নতুন টিউটর অ্যাপ্লিকেশন কাউন্ট
