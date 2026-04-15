@@ -48,6 +48,8 @@ const getDashboardStatsFromDB = async () => {
     todayNewTutors,
     todayNewJobPosts,
     todayNewApplications,
+    dailyJobPosts,
+    dailyApplications,
   ] = await Promise.all([
     // ১. টোটাল আর্নিং
     Payment.aggregate([
@@ -203,6 +205,40 @@ const getDashboardStatsFromDB = async () => {
     TutorApplication.countDocuments({
       createdAt: { $gte: startOfToday },
     }),
+
+    // ১৪. ডেইলি জব পোস্ট (গত ১৪ দিন)
+    JobPost.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: new Date(nowUTC.getTime() - 14 * 24 * 60 * 60 * 1000) },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%m/%d', date: '$createdAt' } },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      { $project: { day: '$_id', count: 1, _id: 0 } },
+    ]),
+
+    // ১৫. ডেইলি অ্যাপ্লিকেশন (গত ১৪ দিন)
+    TutorApplication.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: new Date(nowUTC.getTime() - 14 * 24 * 60 * 60 * 1000) },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%m/%d', date: '$createdAt' } },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      { $project: { day: '$_id', count: 1, _id: 0 } },
+    ]),
   ]);
 
   // গত মাস vs এই মাস growth %
@@ -240,6 +276,8 @@ const getDashboardStatsFromDB = async () => {
     tutorGrowth: growthStats,
     dailyTutorGrowth,
     dailyEarnings,
+    dailyJobPosts,
+    dailyApplications,
     monthlyEarnings12,
 
     // Payment details
