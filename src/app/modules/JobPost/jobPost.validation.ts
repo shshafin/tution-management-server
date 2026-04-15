@@ -77,6 +77,7 @@ const createJobPostValidationSchema = z.object({
         'english version',
         'admission test',
         'specialized learning',
+        'madrasa',
       ]),
 
       classLevel: z.string({ required_error: 'ক্লাস লেভেল আবশ্যক' }),

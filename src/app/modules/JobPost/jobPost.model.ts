@@ -45,6 +45,7 @@ const jobPostSchema = new Schema<IJobPost>(
         'english version',
         'admission test',
         'specialized learning',
+        'madrasa',
       ],
       required: true,
     },

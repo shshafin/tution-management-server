@@ -49,6 +49,9 @@ export const TeachingClasses = [
   'Bangla Language Learning',
   'English Language Learning',
   'French Language Learning',
+  // 🎨 Drawing & Music
+  'Drawing',
+  'Music',
 ] as const;
 
 // 📚 Specialized Learning এর জন্য আলাদা ক্লাস/সাবজেক্ট লিস্ট
@@ -57,6 +60,8 @@ export const SpecializedLearningClasses = [
   'Bangla Language Learning',
   'English Language Learning',
   'French Language Learning',
+  'Drawing',
+  'Music',
 ] as const;
 
 // 🕌 মাদ্রাসা মিডিয়ামের ক্লাস লিস্ট

@@ -46,7 +46,8 @@ export type TStudyCategory =
   | 'english medium'
   | 'english version'
   | 'admission test'
-  | 'specialized learning';
+  | 'specialized learning'
+  | 'madrasa';
 
 // ৩. টিউটর সাবজেক্ট ব্যাকগ্রাউন্ড (Synced with Tutor Discipline)
 export type TSubjectBackground =
@@ -86,7 +87,9 @@ export type TClassLevel =
   | 'French Language Learning'
   | 'দাখিল / SSC'
   | 'আলিম HSC 1st'
-  | 'আলিম HSC 2nd';
+  | 'আলিম HSC 2nd'
+  | 'Drawing'
+  | 'Music';
 
 export type TPreferredTime =
   | 'morning'
