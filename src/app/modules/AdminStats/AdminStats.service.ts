@@ -4,17 +4,33 @@ import { Payment } from '../Payment/payment.model';
 import { User } from '../User/user.model';
 import { JobPost } from '../JobPost/jobPost.model';
 import { TutorApplication } from '../TutorApplication/tutorApplication.model';
-import moment from 'moment';
+// moment removed — সব date calculation native Date + BD offset (UTC+6) দিয়ে
 
 const getDashboardStatsFromDB = async () => {
-  const startOfToday = moment().startOf('day').toDate();
-  const startOfWeek = moment().startOf('week').toDate();
-  const startOfMonth = moment().startOf('month').toDate();
-  const startOfLastMonth = moment()
-    .subtract(1, 'month')
-    .startOf('month')
-    .toDate();
-  const endOfLastMonth = moment().subtract(1, 'month').endOf('month').toDate();
+  // 🇧🇩 Bangladesh Timezone (UTC+6) — সব date calculation BD midnight অনুযায়ী
+  const BD_OFFSET_MS = 6 * 60 * 60 * 1000; // +6 hours in ms
+  const nowUTC = new Date();
+
+  // আজকের শুরু (BD midnight → UTC তে convert)
+  const bdNow = new Date(nowUTC.getTime() + BD_OFFSET_MS);
+  const startOfToday = new Date(
+    Date.UTC(bdNow.getUTCFullYear(), bdNow.getUTCMonth(), bdNow.getUTCDate()) - BD_OFFSET_MS,
+  );
+
+  // এই সপ্তাহের শুরু (BD time অনুযায়ী, Saturday = 6)
+  const bdDay = bdNow.getUTCDay(); // 0=Sun
+  const satOffset = bdDay === 6 ? 0 : bdDay + 1; // Sat থেকে কত দিন পেরিয়েছে
+  const startOfWeek = new Date(startOfToday.getTime() - satOffset * 24 * 60 * 60 * 1000);
+
+  // এই মাসের শুরু
+  const startOfMonth = new Date(
+    Date.UTC(bdNow.getUTCFullYear(), bdNow.getUTCMonth(), 1) - BD_OFFSET_MS,
+  );
+
+  // গত মাসের শুরু ও শেষ
+  const lastMonthDate = new Date(Date.UTC(bdNow.getUTCFullYear(), bdNow.getUTCMonth() - 1, 1));
+  const startOfLastMonth = new Date(lastMonthDate.getTime() - BD_OFFSET_MS);
+  const endOfLastMonth = new Date(startOfMonth.getTime() - 1); // এই মাসের শুরুর 1ms আগে
 
   const [
     earnings,
@@ -74,7 +90,7 @@ const getDashboardStatsFromDB = async () => {
       {
         $match: {
           role: 'tutor',
-          createdAt: { $gte: moment().subtract(6, 'months').toDate() },
+          createdAt: { $gte: new Date(nowUTC.getTime() - 6 * 30 * 24 * 60 * 60 * 1000) },
         },
       },
       {
@@ -92,7 +108,7 @@ const getDashboardStatsFromDB = async () => {
       {
         $match: {
           role: 'tutor',
-          createdAt: { $gte: moment().subtract(14, 'days').toDate() },
+          createdAt: { $gte: new Date(nowUTC.getTime() - 14 * 24 * 60 * 60 * 1000) },
         },
       },
       {
@@ -110,7 +126,7 @@ const getDashboardStatsFromDB = async () => {
       {
         $match: {
           status: 'completed',
-          createdAt: { $gte: moment().subtract(14, 'days').toDate() },
+          createdAt: { $gte: new Date(nowUTC.getTime() - 14 * 24 * 60 * 60 * 1000) },
         },
       },
       {
@@ -139,7 +155,7 @@ const getDashboardStatsFromDB = async () => {
       {
         $match: {
           status: 'completed',
-          createdAt: { $gte: moment().subtract(12, 'months').toDate() },
+          createdAt: { $gte: new Date(nowUTC.getTime() - 12 * 30 * 24 * 60 * 60 * 1000) },
         },
       },
       {
@@ -200,7 +216,7 @@ const getDashboardStatsFromDB = async () => {
         );
 
   // Average daily earning (এই মাসের)
-  const dayOfMonth = moment().date();
+  const dayOfMonth = bdNow.getUTCDate();
   const avgDailyEarning =
     dayOfMonth > 0 ? Math.round(thisMonthEarning / dayOfMonth) : 0;
 
