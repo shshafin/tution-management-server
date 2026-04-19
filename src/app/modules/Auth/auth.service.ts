@@ -9,7 +9,7 @@ import httpStatus from 'http-status';
 import { sendEmail } from '../../utils/sendEmail';
 
 const loginUser = async (payload: TLoginUser) => {
-  const user = await User.findOne({ email: payload.email }).select('+password');
+  const user = await User.findOne({ email: payload.email.toLowerCase() }).select('+password');
 
   if (!user) {
     throw new AppError(

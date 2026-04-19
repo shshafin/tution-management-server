@@ -10,6 +10,10 @@ import httpStatus from 'http-status';
 import AppError from '../../errors/appError';
 
 const createTutorIntoDB = async (payload: IUser) => {
+  if (payload.email) {
+    payload.email = payload.email.toLowerCase();
+  }
+
   // 🔒 Duplicate Phone Number Check
   const existingUser = await User.findOne({ phone: payload.phone });
   if (existingUser) {
@@ -94,6 +98,9 @@ const createTutorIntoDB = async (payload: IUser) => {
 };
 
 const createUserIntoDB = async (payload: IUser) => {
+  if (payload.email) {
+    payload.email = payload.email.toLowerCase();
+  }
   const result = await User.create(payload);
   return result;
 };
