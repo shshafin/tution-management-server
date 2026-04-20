@@ -32,15 +32,18 @@ const getTutorJobFeed = catchAsync(async (req: Request, res: Response) => {
     user = await User.findById(tokenUser?.userId || tokenUser?.id).lean();
   }
 
+  // Frontend might pass "undefined" as string when fields are not set
+  const cleanQuery = (val: any) => (val === 'undefined' || val === 'null' || val === '') ? undefined : val;
+
   const queryData = {
     ...req.query,
-    tutorType: req.query.tutorType || user?.tutorType,
-    tutorGender: user?.gender || tokenUser?.gender || req.query.tutorGender,
+    tutorType: cleanQuery(req.query.tutorType) || user?.tutorType,
+    tutorGender: cleanQuery(req.query.tutorGender) || user?.gender || tokenUser?.gender,
     tutorDiscipline:
-      user?.bachelorInfo?.discipline || tokenUser?.discipline || req.query.tutorDiscipline,
+      cleanQuery(req.query.tutorDiscipline) || user?.bachelorInfo?.discipline || tokenUser?.discipline,
     // ফোনের হার্ডওয়্যার জিপিএস বা প্রোফাইল থেকে ল্যাট-লং নেওয়া
-    latitude: req.query.latitude || user?.location?.coordinates?.[1] || tokenUser?.location?.coordinates?.[1],
-    longitude: req.query.longitude || user?.location?.coordinates?.[0] || tokenUser?.location?.coordinates?.[0],
+    latitude: cleanQuery(req.query.latitude) || user?.location?.coordinates?.[1] || tokenUser?.location?.coordinates?.[1],
+    longitude: cleanQuery(req.query.longitude) || user?.location?.coordinates?.[0] || tokenUser?.location?.coordinates?.[0],
   };
 
   const result = await JobPostService.getTutorJobFeedFromDB(queryData);

@@ -147,6 +147,10 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
           $maxDistance: radiusInMeters,
         },
       };
+    } else if (!hasLocation && !searchTerm) {
+      // If the tutor is strictly offline but doesn't have a valid location saved in profile, 
+      // they must see NO jobs. Falling back to all jobs breaks offline constraint.
+      return [];
     }
   }
 
