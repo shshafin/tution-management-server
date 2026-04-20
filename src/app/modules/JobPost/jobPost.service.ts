@@ -113,30 +113,63 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
     });
   }
 
-  // --- NEW TUTORING TYPE & RADIUS LOGIC START ---
+  // --- TUTOR TYPE ↔ JOB MATCHING LOGIC ---
+  //
+  // Matching Rules:
+  //   Guardian posts 'online'  → Only tutors with 'online' or 'both' can see it
+  //   Guardian posts 'offline' → Only tutors with 'offline' or 'both' can see it
+  //   Guardian posts 'both'    → All tutors can see it
+  //
+  // Tutor Types:
+  //   tutorType = ['online']         → isOnline=true,  isOffline=false
+  //   tutorType = ['offline']        → isOnline=false, isOffline=true
+  //   tutorType = ['online','offline'] or 'both' → isOnline=true, isOffline=true
+
   let isOnline = false;
   let isOffline = false;
-  
+
   if (query.tutorType) {
-    const ttString = Array.isArray(query.tutorType) ? query.tutorType.join(',') : String(query.tutorType);
+    const ttString = Array.isArray(query.tutorType)
+      ? query.tutorType.join(',')
+      : String(query.tutorType);
     const tt = ttString.toLowerCase();
-    isOnline = tt.includes('online') || tt.includes('both');
-    isOffline = tt.includes('offline') || tt.includes('both');
+    isOnline = tt.includes('online');
+    isOffline = tt.includes('offline');
   } else {
+    // tutorType পাঠানো না হলে সব দেখাবে
     isOnline = true;
     isOffline = true;
   }
 
+  // ── Job tutoringType filter based on tutor capability ──
+  // tutor = online only      → job must be 'online' or 'both'
+  // tutor = offline only     → job must be 'offline' or 'both'
+  // tutor = online + offline → job can be anything (no filter)
+  if (!query.tutoringType) {
+    // frontend থেকে explicit filter না আসলে tutor-profile-based filter লাগাও
+    if (isOnline && !isOffline) {
+      // online-only tutor: শুধু online বা both jobs দেখবে
+      filterQuery.$and = filterQuery.$and || [];
+      filterQuery.$and.push({ tutoringType: { $in: ['online', 'both'] } });
+    } else if (!isOnline && isOffline) {
+      // offline-only tutor: শুধু offline বা both jobs দেখবে
+      filterQuery.$and = filterQuery.$and || [];
+      filterQuery.$and.push({ tutoringType: { $in: ['offline', 'both'] } });
+    }
+    // online+offline (both) tutor: সব jobs দেখবে → কোনো filter নেই
+  } else {
+    // Frontend থেকে explicit tutoringType filter এলে সেটাই প্রাধান্য পাবে
+    filterQuery.$and = filterQuery.$and || [];
+    filterQuery.$and.push({ tutoringType: query.tutoringType });
+  }
+
+  // ── Location (Radius) Filter for offline-capable tutors ──
   const hasLocation = query.latitude && query.longitude;
   const config = await AdminConfig.findOne();
   const radiusInMeters = (config?.jobSearchRadius || 5) * 1000;
 
-  // Simple Logic Rules:
-  // - If tutor is Online (or Both): No location filter, no tutoringType filter.
-  // - If tutor is strictly Offline: Apply location filter, no tutoringType filter.
-  
   if (!isOnline && isOffline) {
-    // strictly offline tutor
+    // strictly offline tutor → location radius filter লাগাও
     if (hasLocation && !searchTerm) {
       filterQuery.location = {
         $near: {
@@ -148,18 +181,11 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
         },
       };
     } else if (!hasLocation && !searchTerm) {
-      // If the tutor is strictly offline but doesn't have a valid location saved in profile, 
-      // they must see NO jobs. Falling back to all jobs breaks offline constraint.
+      // Location নেই, search-ও নেই → কোনো job দেখাবে না
       return [];
     }
   }
-
-  // Explicit job tutoring type filter from frontend (if guardian searches for specific jobs)
-  if (query.tutoringType) {
-    filterQuery.$and = filterQuery.$and || [];
-    filterQuery.$and.push({ tutoringType: query.tutoringType });
-  }
-  // --- NEW TUTORING TYPE & RADIUS LOGIC END ---
+  // ── END OF MATCHING LOGIC ──
 
   if (searchTerm) {
     // ড্যাশ ও স্পেস normalize করো: "mirpur 1" ↔ "mirpur-1"
