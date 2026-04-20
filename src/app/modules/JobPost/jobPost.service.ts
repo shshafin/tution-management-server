@@ -142,21 +142,21 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
   }
 
   // ── Job tutoringType filter based on tutor capability ──
-  // tutor = online only      → job must be 'online' or 'both'
-  // tutor = offline only     → job must be 'offline' or 'both'
-  // tutor = online + offline → job can be anything (no filter)
+  // Guardian posts 'online'  → tutor must have 'online' in their tutorType
+  // Guardian posts 'offline' → tutor must have 'offline' in their tutorType
+  // Tutor with both online+offline → sees ALL jobs (no restriction)
   if (!query.tutoringType) {
-    // frontend থেকে explicit filter না আসলে tutor-profile-based filter লাগাও
+    // Frontend থেকে explicit filter না আসলে tutor-profile-based filter লাগাও
     if (isOnline && !isOffline) {
-      // online-only tutor: শুধু online বা both jobs দেখবে
+      // online-only tutor → শুধু 'online' jobs দেখবে
       filterQuery.$and = filterQuery.$and || [];
-      filterQuery.$and.push({ tutoringType: { $in: ['online', 'both'] } });
+      filterQuery.$and.push({ tutoringType: 'online' });
     } else if (!isOnline && isOffline) {
-      // offline-only tutor: শুধু offline বা both jobs দেখবে
+      // offline-only tutor → শুধু 'offline' jobs দেখবে
       filterQuery.$and = filterQuery.$and || [];
-      filterQuery.$and.push({ tutoringType: { $in: ['offline', 'both'] } });
+      filterQuery.$and.push({ tutoringType: 'offline' });
     }
-    // online+offline (both) tutor: সব jobs দেখবে → কোনো filter নেই
+    // online+offline tutor → সব jobs দেখবে (কোনো filter নেই)
   } else {
     // Frontend থেকে explicit tutoringType filter এলে সেটাই প্রাধান্য পাবে
     filterQuery.$and = filterQuery.$and || [];

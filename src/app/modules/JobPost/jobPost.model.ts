@@ -10,8 +10,8 @@ const jobPostSchema = new Schema<IJobPost>(
 
     tutoringType: {
       type: String,
-      enum: ['offline', 'online', 'both'],
-      required: false,
+      enum: ['offline', 'online'],
+      required: true,
     },
     guardianPhone: { type: String, required: true },
     guardianName: { type: String, required: true },
