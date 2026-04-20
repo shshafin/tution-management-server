@@ -204,34 +204,53 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
     }
   } else if (isOnline && isOffline && !query.tutoringType) {
     // ── online+offline both tutor ──
-    // online jobs: সব দেখবে (no location barrier)
-    // offline jobs: শুধু radius-এর মধ্যে দেখবে
+    //
+    // ⚠️ MongoDB Limitation: $near cannot be used inside $or.
+    // তাই দুটো আলাদা query চালিয়ে result merge করতে হবে।
+    //
+    // Query 1: সব online jobs (no location barrier)
+    // Query 2: offline jobs শুধু radius-এর মধ্যে ($near)
+    // Merge → sort by createdAt → early return
+
     if (hasLocation && !searchTerm) {
-      // $or দিয়ে দুটো condition merge করো
-      filterQuery.$and = filterQuery.$and || [];
-      filterQuery.$and.push({
-        $or: [
-          { tutoringType: 'online' },
-          {
-            tutoringType: 'offline',
-            location: {
-              $near: {
-                $geometry: {
-                  type: 'Point',
-                  coordinates: [Number(query.longitude), Number(query.latitude)],
-                },
-                $maxDistance: radiusInMeters,
-              },
+      // Deep clone filterQuery (RegExp-safe)
+      const baseFilter = JSON.parse(JSON.stringify(filterQuery));
+
+      const onlineFilter = { ...baseFilter, tutoringType: 'online' };
+      const offlineFilter = {
+        ...baseFilter,
+        tutoringType: 'offline',
+        location: {
+          $near: {
+            $geometry: {
+              type: 'Point',
+              coordinates: [Number(query.longitude), Number(query.latitude)],
             },
+            $maxDistance: radiusInMeters,
           },
-        ],
+        },
+      };
+
+      const selectFields = '-guardianPhone -location.detailedAddress';
+      const [onlineJobs, offlineJobs] = await Promise.all([
+        JobPost.find(onlineFilter).select(selectFields).lean(),
+        JobPost.find(offlineFilter).select(selectFields).lean(),
+      ]);
+
+      // Merge এবং _id (timestamp-based) অনুযায়ী newest-first সর্ট করো
+      const merged = [...onlineJobs, ...offlineJobs].sort((a, b) => {
+        const aId = a._id.toString();
+        const bId = b._id.toString();
+        return bId > aId ? 1 : -1;
       });
+
+      return merged;
     } else if (!hasLocation && !searchTerm) {
       // Location নেই, search-ও নেই → শুধু online jobs দেখাবে
       filterQuery.$and = filterQuery.$and || [];
       filterQuery.$and.push({ tutoringType: 'online' });
     }
-    // searchTerm থাকলে → normal flow (no location restriction, text search-ই যথেষ্ট)
+    // searchTerm থাকলে → নিচের normal flow চলবে (text search, no location restriction)
   }
   // ── END OF MATCHING LOGIC ──
 
