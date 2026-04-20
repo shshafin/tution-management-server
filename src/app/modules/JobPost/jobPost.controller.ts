@@ -3,6 +3,7 @@ import httpStatus from 'http-status';
 import catchAsync from '../../shared/catchAsync';
 import sendResponse from '../../shared/sendResponse';
 import { JobPostService } from './jobPost.service';
+import { User } from '../User/user.model';
 
 /**
  * ১. টিউশনি পোস্ট তৈরি
@@ -24,16 +25,22 @@ const createJobPost = catchAsync(async (req: Request, res: Response) => {
  * ২. টিউটরদের জন্য কাস্টমাইজড জব ফিড
  */
 const getTutorJobFeed = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user; // Auth middleware থেকে আসা ডেটা
+  const tokenUser = req.user; // Auth middleware থেকে আসা ডেটা
+  let user = null;
+
+  if (tokenUser?.userId || tokenUser?.id) {
+    user = await User.findById(tokenUser?.userId || tokenUser?.id).lean();
+  }
 
   const queryData = {
     ...req.query,
-    tutorGender: user?.gender || req.query.tutorGender,
+    tutorType: req.query.tutorType || user?.tutorType,
+    tutorGender: user?.gender || tokenUser?.gender || req.query.tutorGender,
     tutorDiscipline:
-      user?.bachelorInfo?.discipline || req.query.tutorDiscipline,
+      user?.bachelorInfo?.discipline || tokenUser?.discipline || req.query.tutorDiscipline,
     // ফোনের হার্ডওয়্যার জিপিএস বা প্রোফাইল থেকে ল্যাট-লং নেওয়া
-    latitude: req.query.latitude || user?.location?.coordinates?.[1],
-    longitude: req.query.longitude || user?.location?.coordinates?.[0],
+    latitude: req.query.latitude || user?.location?.coordinates?.[1] || tokenUser?.location?.coordinates?.[1],
+    longitude: req.query.longitude || user?.location?.coordinates?.[0] || tokenUser?.location?.coordinates?.[0],
   };
 
   const result = await JobPostService.getTutorJobFeedFromDB(queryData);
