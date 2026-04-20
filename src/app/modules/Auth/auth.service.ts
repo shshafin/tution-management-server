@@ -49,6 +49,7 @@ const loginUser = async (payload: TLoginUser) => {
     location: user.location,
     credits: user.credits,
     gender: user.gender,
+    tutorType: user.tutorType,
     discipline: user.bachelorInfo?.discipline,
   };
 
@@ -106,6 +107,7 @@ const refreshToken = async (token: string) => {
     name: user.name,
     credits: user.credits,
     gender: user.gender,
+    tutorType: user.tutorType,
     discipline: user.bachelorInfo?.discipline,
   };
 
