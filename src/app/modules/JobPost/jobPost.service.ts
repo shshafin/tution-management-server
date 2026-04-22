@@ -127,6 +127,8 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
 
   let isOnline = false;
   let isOffline = false;
+  // tutorType explicitly send করা হয়েছে কিনা track করার জন্য
+  const hasTutorType = !!query.tutorType;
 
   if (query.tutorType) {
     const ttString = Array.isArray(query.tutorType)
@@ -136,7 +138,8 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
     isOnline = tt.includes('online');
     isOffline = tt.includes('offline');
   } else {
-    // tutorType পাঠানো না হলে সব দেখাবে
+    // tutorType পাঠানো না হলে (logged-out visitor বা profile ছাড়া user)
+    // সব ধরনের job দেখাবে
     isOnline = true;
     isOffline = true;
   }
@@ -148,19 +151,19 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
   //   offline-only tutor → শুধু 'offline' jobs দেখবে + location radius filter
   //   both tutor         → 'online' ও 'offline' দুটোই দেখবে
   //                        কিন্তু offline jobs-এ location radius filter বাধ্যতামূলক
+  //   logged-out / no tutorType → সব published jobs দেখাবে (no type restriction)
   if (!query.tutoringType) {
     // Frontend থেকে explicit filter না আসলে tutor-profile-based filter লাগাও
-    if (isOnline && !isOffline) {
+    if (hasTutorType && isOnline && !isOffline) {
       // online-only tutor → শুধু 'online' jobs দেখবে
       filterQuery.$and = filterQuery.$and || [];
       filterQuery.$and.push({ tutoringType: 'online' });
-    } else if (!isOnline && isOffline) {
+    } else if (hasTutorType && !isOnline && isOffline) {
       // offline-only tutor → শুধু 'offline' jobs দেখবে
       filterQuery.$and = filterQuery.$and || [];
       filterQuery.$and.push({ tutoringType: 'offline' });
     }
-    // online+offline tutor → সব jobs দেখবে (tutoringType filter নেই)
-    // কিন্তু নিচে offline jobs-এর জন্য location filter বাধ্যতামূলক হবে
+    // online+offline tutor বা logged-out → সব jobs দেখবে (tutoringType filter নেই)
   } else {
     // Frontend থেকে explicit tutoringType filter এলে সেটাই প্রাধান্য পাবে
     filterQuery.$and = filterQuery.$and || [];
@@ -186,7 +189,7 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
   const config = await AdminConfig.findOne();
   const radiusInMeters = (config?.jobSearchRadius || 5) * 1000;
 
-  if (isOffline && !isOnline) {
+  if (hasTutorType && isOffline && !isOnline) {
     // ── strictly offline-only tutor ──
     if (hasLocation && !searchTerm) {
       filterQuery.location = {
@@ -202,8 +205,8 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
       // Location নেই, search-ও নেই → কোনো job দেখাবে না
       return [];
     }
-  } else if (isOnline && isOffline && !query.tutoringType) {
-    // ── online+offline both tutor ──
+  } else if (hasTutorType && isOnline && isOffline && !query.tutoringType) {
+    // ── online+offline both tutor (explicitly set) ──
     //
     // ⚠️ MongoDB Limitation: $near cannot be used inside $or.
     // তাই দুটো আলাদা query চালিয়ে result merge করতে হবে।
@@ -245,13 +248,11 @@ const getTutorJobFeedFromDB = async (query: Record<string, any>) => {
       });
 
       return merged;
-    } else if (!hasLocation && !searchTerm) {
-      // Location নেই, search-ও নেই → শুধু online jobs দেখাবে
-      filterQuery.$and = filterQuery.$and || [];
-      filterQuery.$and.push({ tutoringType: 'online' });
     }
-    // searchTerm থাকলে → নিচের normal flow চলবে (text search, no location restriction)
+    // Location নেই বা searchTerm আছে → নিচের normal flow চলবে
+    // (সব online+offline jobs, no location restriction)
   }
+  // logged-out / no tutorType → কোনো location/type filter নেই, সব দেখাবে
   // ── END OF MATCHING LOGIC ──
 
   if (searchTerm) {
