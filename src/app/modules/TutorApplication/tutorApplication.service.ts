@@ -94,7 +94,114 @@ const getMyAppliedJobsFromDB = async (
   };
 };
 
+const getAllApplicationsFromDB = async (
+  query: Record<string, any>,
+) => {
+  const page = Number(query?.page) || 1;
+  const limit = Number(query?.limit) || 10;
+  const skip = (page - 1) * limit;
+  const searchTerm = query?.searchTerm || '';
+  const statusFilter = query?.status || '';
+
+  // Build pipeline to search within populated tutor fields
+  const pipeline: any[] = [
+    // Populate tutor
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'tutor',
+        foreignField: '_id',
+        as: 'tutor',
+      },
+    },
+    { $unwind: '$tutor' },
+    // Populate jobPost
+    {
+      $lookup: {
+        from: 'jobposts',
+        localField: 'jobPost',
+        foreignField: '_id',
+        as: 'jobPost',
+      },
+    },
+    { $unwind: '$jobPost' },
+  ];
+
+  // Search filter (tutor name or phone)
+  if (searchTerm) {
+    pipeline.push({
+      $match: {
+        $or: [
+          { 'tutor.name': { $regex: searchTerm, $options: 'i' } },
+          { 'tutor.phone': { $regex: searchTerm, $options: 'i' } },
+          { 'jobPost.classLevel': { $regex: searchTerm, $options: 'i' } },
+          { 'jobPost.location.shortArea': { $regex: searchTerm, $options: 'i' } },
+        ],
+      },
+    });
+  }
+
+  // Status filter
+  if (statusFilter) {
+    pipeline.push({
+      $match: { status: statusFilter },
+    });
+  }
+
+  // Sort by latest
+  pipeline.push({ $sort: { appliedAt: -1 } });
+
+  // Count total before pagination
+  const countPipeline = [...pipeline, { $count: 'total' }];
+  const countResult = await TutorApplication.aggregate(countPipeline);
+  const total = countResult[0]?.total || 0;
+
+  // Pagination
+  pipeline.push({ $skip: skip });
+  pipeline.push({ $limit: limit });
+
+  // Project needed fields
+  pipeline.push({
+    $project: {
+      _id: 1,
+      status: 1,
+      appliedAt: 1,
+      createdAt: 1,
+      'tutor._id': 1,
+      'tutor.name': 1,
+      'tutor.phone': 1,
+      'tutor.email': 1,
+      'tutor.image': 1,
+      'tutor.gender': 1,
+      'tutor.location': 1,
+      'jobPost._id': 1,
+      'jobPost.classLevel': 1,
+      'jobPost.subjects': 1,
+      'jobPost.studyCategory': 1,
+      'jobPost.location': 1,
+      'jobPost.minSalary': 1,
+      'jobPost.maxSalary': 1,
+      'jobPost.guardianName': 1,
+      'jobPost.tutoringType': 1,
+      'jobPost.status': 1,
+    },
+  });
+
+  const result = await TutorApplication.aggregate(pipeline);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage: Math.ceil(total / limit),
+    },
+    data: result,
+  };
+};
+
 export const TutorApplicationService = {
   applyToJobIntoDB,
   getMyAppliedJobsFromDB,
+  getAllApplicationsFromDB,
 };

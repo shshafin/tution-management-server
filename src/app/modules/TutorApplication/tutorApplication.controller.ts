@@ -45,7 +45,22 @@ const getMyAppliedJobs = catchAsync(async (req, res) => {
   });
 });
 
+const getAllApplications = catchAsync(async (req, res) => {
+  const result = await TutorApplicationService.getAllApplicationsFromDB(
+    req.query,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'সকল টিউটর আবেদন সফলভাবে পাওয়া গেছে।',
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
 export const TutorApplicationController = {
   applyToJob,
   getMyAppliedJobs,
+  getAllApplications,
 };

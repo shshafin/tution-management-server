@@ -19,4 +19,10 @@ router.get(
   TutorApplicationController.getMyAppliedJobs,
 );
 
+router.get(
+  '/all',
+  auth('admin', 'super_admin'),
+  TutorApplicationController.getAllApplications,
+);
+
 export const TutorApplicationRoutes = router;
