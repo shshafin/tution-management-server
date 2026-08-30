@@ -33,6 +33,7 @@ router.get('/', auth('admin', 'super_admin'), JobPostController.getAllJobs);
 router.patch(
   '/:id',
   auth('admin', 'super_admin'),
+  validateRequest(JobPostValidation.updateJobPostValidationSchema),
   JobPostController.updateJobPost,
 );
 

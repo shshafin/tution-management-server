@@ -6,11 +6,33 @@ import { JobPost } from './jobPost.model';
 import { OTP } from '../OTP/otp.model';
 import { sendSMS } from '../../utils/sendSMS';
 import { TutorApplication } from '../TutorApplication/tutorApplication.model';
+import {
+  isCompleteJobLocation,
+  JOB_LOCATION_REQUIRED_MESSAGE,
+} from './jobPost.location';
 
 /**
  * ১. টিউশনি পোস্ট তৈরি ও পাবলিশিং লজিক
  */
 const createJobPostIntoDB = async (payload: IJobPost) => {
+  if (!isCompleteJobLocation(payload.location)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      JOB_LOCATION_REQUIRED_MESSAGE,
+      JOB_LOCATION_REQUIRED_MESSAGE,
+    );
+  }
+
+  const loc = payload.location!;
+  payload.location = {
+    ...loc,
+    shortArea: loc.shortArea.trim(),
+    mapAddress: loc.mapAddress.trim(),
+    detailedAddress: loc.detailedAddress!.trim(),
+    type: 'Point',
+    coordinates: loc.coordinates as [number, number],
+  };
+
   // 🔒 Duplicate Phone Number Check (same phone দিয়ে একাধিক active post block)
   const existingPost = await JobPost.findOne({
     guardianPhone: payload.guardianPhone,
@@ -371,6 +393,25 @@ const updateJobPostIntoDB = async (id: string, payload: Partial<IJobPost>) => {
       'জব পোস্টটি খুঁজে পাওয়া যায়নি।',
       '',
     );
+  }
+
+  if (payload.location) {
+    if (!isCompleteJobLocation(payload.location)) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        JOB_LOCATION_REQUIRED_MESSAGE,
+        JOB_LOCATION_REQUIRED_MESSAGE,
+      );
+    }
+    const loc = payload.location;
+    payload.location = {
+      ...loc,
+      shortArea: loc.shortArea.trim(),
+      mapAddress: loc.mapAddress.trim(),
+      detailedAddress: loc.detailedAddress!.trim(),
+      type: 'Point',
+      coordinates: loc.coordinates as [number, number],
+    };
   }
 
   const result = await JobPost.findByIdAndUpdate(id, payload, {

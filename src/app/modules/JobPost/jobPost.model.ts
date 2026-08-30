@@ -16,19 +16,37 @@ const jobPostSchema = new Schema<IJobPost>(
     guardianPhone: { type: String, required: true },
     guardianName: { type: String, required: true },
     location: {
-      shortArea: { type: String, required: true },
-      mapAddress: { type: String, required: true },
+      shortArea: {
+        type: String,
+        required: function (this: { tutoringType?: string }) {
+          return this.tutoringType !== 'online';
+        },
+      },
+      mapAddress: {
+        type: String,
+        required: function (this: { tutoringType?: string }) {
+          return this.tutoringType !== 'online';
+        },
+      },
       detailedAddress: { type: String },
 
       type: {
         type: String,
         enum: ['Point'],
-        default: 'Point',
+        // No default: online jobs omit location entirely (avoids empty Point breaking 2dsphere)
       },
       coordinates: {
         type: [Number],
-        required: true,
+        required: function (this: { tutoringType?: string }) {
+          return this.tutoringType !== 'online';
+        },
       },
+      districtId: { type: String },
+      districtName: { type: String },
+      districtNameBn: { type: String },
+      upazilaId: { type: String },
+      upazilaName: { type: String },
+      upazilaNameBn: { type: String },
     },
     studentGender: { type: String, enum: ['male', 'female'], required: true },
     tutorGenderPreference: {
@@ -107,6 +125,33 @@ jobPostSchema.index({
   isOtpVerified: 1,
   studyCategory: 1,
   classLevel: 1,
+});
+
+jobPostSchema.pre('validate', function (next) {
+  if (!this.isNew) {
+    return next();
+  }
+  const loc = this.location as any;
+  const detailed =
+    typeof loc?.detailedAddress === 'string' ? loc.detailedAddress.trim() : '';
+  const coords = loc?.coordinates;
+  const coordsOk =
+    Array.isArray(coords) &&
+    coords.length === 2 &&
+    Number.isFinite(Number(coords[0])) &&
+    Number.isFinite(Number(coords[1]));
+  const areaOk =
+    typeof loc?.shortArea === 'string' && loc.shortArea.trim().length > 0;
+  const mapOk =
+    typeof loc?.mapAddress === 'string' && loc.mapAddress.trim().length > 0;
+  if (!areaOk || !mapOk || detailed.length < 5 || !coordsOk) {
+    return next(
+      new Error(
+        'জব পোস্টের জন্য এলাকা সিলেক্ট এবং বাসার বিস্তারিত ঠিকানা আবশ্যক',
+      ),
+    );
+  }
+  next();
 });
 
 export const JobPost = model<IJobPost>('JobPost', jobPostSchema);
